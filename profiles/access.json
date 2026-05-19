@@ -1,8 +1,8 @@
 {
   "config": {
     "AllowFreeFallback": true,
-    "CheckEndpoint": "",
-    "AdminEndpoint": "",
+    "CheckEndpoint": "https://backend.vapesilentware.workers.dev/check",
+    "AdminEndpoint": "https://backend.vapesilentware.workers.dev/admin",
     "ExecutionWebhook": "",
     "defaultModuleTiers": {
       "Combat": "standard",
