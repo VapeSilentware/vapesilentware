@@ -242,7 +242,7 @@ local function vapeGithubRequest(scripturl, isImportant)
     if commit == nil then commit = "main" end
     local branches = {tostring(commit), "main"}
     local repoPrimary = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
-    local repos = {repoPrimary, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
+    local repos = {repoPrimary, "VapeSilentware/vapesilentware"}
     for _, branch in ipairs(branches) do
         local found = false
         for _, repo in ipairs(repos) do

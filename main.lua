@@ -151,7 +151,7 @@ local function stripBom(str)
 	return str
 end
 local function fetchSilentwareFile(path)
-	local repos = {swRepo, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
+	local repos = {swRepo, "VapeSilentware/vapesilentware"}
 	local branches = {swBranch, "main"}
 	for _, branch in ipairs(branches) do
 		for _, repo in ipairs(repos) do
