@@ -415,6 +415,9 @@ local function pload(fileName, isImportant, required)
     end        
     if shared.VoidDev and shared.DebugMode then warn(fileName, isImportant, required, debug.traceback(fileName)) end
     local res = vapeGithubRequest(fileName, isImportant)
+    if type(res) == "string" then
+        res = res:gsub("^\239\187\191", "")
+    end
     local a, loadErr = loadstring(res)
     local suc, err = true, ""
     if type(a) ~= "function" then

@@ -141,6 +141,12 @@ end
 
 local swRepo = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
 local swBranch = tostring(shared.CustomCommit or shared.SilentwareBranch or "main")
+local function stripBom(str)
+	if type(str) ~= "string" then
+		return str
+	end
+	return (str:gsub("^\239\187\191", ""))
+end
 local function fetchSilentwareFile(path)
 	local repos = {swRepo, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
 	local branches = {swBranch, "main"}
@@ -150,7 +156,7 @@ local function fetchSilentwareFile(path)
 				return game:HttpGet("https://raw.githubusercontent.com/"..repo.."/"..branch.."/"..path, true)
 			end)
 			if suc and res and res ~= "404: Not Found" then
-				return res
+				return stripBom(res)
 			end
 		end
 	end
