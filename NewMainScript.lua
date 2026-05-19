@@ -436,7 +436,12 @@ local function pload(fileName, isImportant, required)
             suc = false
             err = tostring(callRes)
         elseif required then
-            return callRes
+            if callRes == nil then
+                suc = false
+                err = "Required file returned nil: "..tostring(fileName)
+            else
+                return callRes
+            end
         end
     end
     if (not suc) then 

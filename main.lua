@@ -184,6 +184,9 @@ SWFunctions.GlobaliseObject("SilentwareFunctions", SWFunctions)
 SWFunctions.GlobaliseObject("SWFunctions", SWFunctions)
 
 vape = pload('guis/'..gui..'.lua', true, true)
+if type(vape) ~= "table" or type(vape.Load) ~= "function" then
+	error("guis/new.lua failed to load a valid GUI object")
+end
 shared.vape = vape
 getgenv().vape = vape
 getgenv().GuiLibrary = vape
