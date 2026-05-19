@@ -22,7 +22,7 @@ local mainapi = {
 	Scale = {Value = 1},
 	ThreadFix = setthreadidentity and true or false,
 	ToggleNotifications = {},
-	Version = '4.18',
+	Version = 'v1',
 	Windows = {}
 }
 mainapi.ThreadFix = false
@@ -272,7 +272,7 @@ local function animatePremiumOpen()
 	shell.Position = UDim2.fromScale(0.5, 0.515)
 	shell.BackgroundTransparency = 0.18
 	if mainapi.PremiumGlow then
-		mainapi.PremiumGlow.ImageTransparency = 0.82
+		mainapi.PremiumGlow.ImageTransparency = 1
 	end
 	if shellscale then
 		tween:Tween(shellscale, uipallet.OpenTween, {Scale = 1})
@@ -283,9 +283,143 @@ local function animatePremiumOpen()
 	})
 	if mainapi.PremiumGlow then
 		tween:Tween(mainapi.PremiumGlow, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-			ImageTransparency = 0.42
+			ImageTransparency = 1
 		})
 	end
+end
+
+local function createStartupLoader()
+	if mainapi.PremiumStartupShown or not scaledgui then return end
+	mainapi.PremiumStartupShown = true
+
+	local loader = Instance.new('Frame')
+	loader.Name = 'SilentwareStartupLoader'
+	loader.Size = UDim2.fromScale(1, 1)
+	loader.BackgroundColor3 = Color3.new(0, 0, 0)
+	loader.BackgroundTransparency = 0.28
+	loader.BorderSizePixel = 0
+	loader.ZIndex = 80
+	loader.Parent = scaledgui
+
+	local card = Instance.new('Frame')
+	card.Name = 'LoaderCard'
+	card.AnchorPoint = Vector2.new(0.5, 0.5)
+	card.Position = UDim2.fromScale(0.5, 0.5)
+	card.Size = UDim2.fromOffset(310, 152)
+	card.BackgroundColor3 = uipallet.Surface
+	card.BackgroundTransparency = 0.04
+	card.BorderSizePixel = 0
+	card.ZIndex = 81
+	card.Parent = loader
+	addCorner(card, UDim.new(0, 18))
+	addStroke(card, uipallet.Border, 1, 0.34)
+	addShadow(card, 'LoaderShadow', 0.18, 120, 12)
+	local cardGlow = addGlow(card, 'LoaderGlow', 0.42, 86)
+	cardGlow.ImageColor3 = uipallet.Accent
+
+	local cardScale = Instance.new('UIScale')
+	cardScale.Scale = 0.92
+	cardScale.Parent = card
+
+	local title = Instance.new('TextLabel')
+	title.Name = 'Title'
+	title.Size = UDim2.new(1, -42, 0, 28)
+	title.Position = UDim2.fromOffset(22, 22)
+	title.BackgroundTransparency = 1
+	title.Text = 'Silentware'
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = uipallet.Text
+	title.TextSize = 21
+	title.FontFace = uipallet.FontSemiBold
+	title.ZIndex = 82
+	title.Parent = card
+
+	local dot = Instance.new('Frame')
+	dot.Name = 'GlowDot'
+	dot.Size = UDim2.fromOffset(8, 8)
+	dot.Position = UDim2.fromOffset(134, 32)
+	dot.BackgroundColor3 = uipallet.Accent
+	dot.BorderSizePixel = 0
+	dot.ZIndex = 83
+	dot.Parent = card
+	addCorner(dot, UDim.new(1, 0))
+	local dotGlow = addGlow(dot, 'DotGlow', 0.2, 44)
+	dotGlow.ImageColor3 = uipallet.Accent
+
+	local sub = Instance.new('TextLabel')
+	sub.Name = 'Subtext'
+	sub.Size = UDim2.new(1, -44, 0, 18)
+	sub.Position = UDim2.fromOffset(22, 52)
+	sub.BackgroundTransparency = 1
+	sub.Text = 'loading premium interface...'
+	sub.TextXAlignment = Enum.TextXAlignment.Left
+	sub.TextColor3 = uipallet.MutedText
+	sub.TextSize = 12
+	sub.FontFace = uipallet.Font
+	sub.ZIndex = 82
+	sub.Parent = card
+
+	local bar = Instance.new('Frame')
+	bar.Name = 'ProgressTrack'
+	bar.Size = UDim2.new(1, -44, 0, 7)
+	bar.Position = UDim2.fromOffset(22, 101)
+	bar.BackgroundColor3 = color.Light(uipallet.Main, 0.07)
+	bar.BorderSizePixel = 0
+	bar.ZIndex = 82
+	bar.Parent = card
+	addCorner(bar, UDim.new(1, 0))
+	addStroke(bar, uipallet.Border, 1, 0.68)
+
+	local fill = Instance.new('Frame')
+	fill.Name = 'Fill'
+	fill.Size = UDim2.fromScale(0, 1)
+	fill.BackgroundColor3 = uipallet.Accent
+	fill.BorderSizePixel = 0
+	fill.ZIndex = 83
+	fill.Parent = bar
+	addCorner(fill, UDim.new(1, 0))
+	local fillGlow = addGlow(fill, 'ProgressGlow', 0.34, 42)
+	fillGlow.ImageColor3 = uipallet.Accent
+
+	local sweep = Instance.new('Frame')
+	sweep.Name = 'Sweep'
+	sweep.Size = UDim2.fromOffset(42, 2)
+	sweep.Position = UDim2.fromOffset(22, 122)
+	sweep.BackgroundColor3 = uipallet.Accent
+	sweep.BackgroundTransparency = 0.22
+	sweep.BorderSizePixel = 0
+	sweep.ZIndex = 83
+	sweep.Parent = card
+	addCorner(sweep, UDim.new(1, 0))
+	local sweepGlow = addGlow(sweep, 'SweepGlow', 0.42, 40)
+	sweepGlow.ImageColor3 = uipallet.Accent
+
+	tween:Tween(cardScale, TweenInfo.new(0.36, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Scale = 1})
+	tween:Tween(loader, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.18})
+	tween:Tween(fill, TweenInfo.new(0.92, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.fromScale(1, 1)})
+	tween:Tween(sweep, TweenInfo.new(0.92, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.fromOffset(246, 122), BackgroundTransparency = 0.58})
+
+	task.spawn(function()
+		repeat
+			tween:Tween(dotGlow, TweenInfo.new(0.42, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.08})
+			task.wait(0.42)
+			tween:Tween(dotGlow, TweenInfo.new(0.42, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.48})
+			task.wait(0.42)
+		until not loader.Parent or mainapi.Loaded == nil
+	end)
+
+	task.delay(1.02, function()
+		if mainapi.Loaded == nil then return end
+		if clickgui and not clickgui.Visible then
+			clickgui.Visible = true
+		else
+			animatePremiumOpen()
+		end
+		tween:Tween(cardScale, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0.96})
+		tween:Tween(loader, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+		task.wait(0.25)
+		if loader.Parent then loader:Destroy() end
+	end)
 end
 
 local function compatOption(optionapi)
@@ -2772,8 +2906,8 @@ function mainapi:CreateGUI()
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.ClipsDescendants = false
 	mainapi.PremiumShell = shell
-	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', 0.34, 118, 10)
-	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.42, 102)
+	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', 0.18, 138, 14)
+	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 1, 72)
 	mainapi.PremiumGlow.ImageColor3 = uipallet.Accent
 	local shellscale = Instance.new('UIScale')
 	shellscale.Name = 'OpenScale'
@@ -2789,10 +2923,29 @@ function mainapi:CreateGUI()
 	})
 	shellGradient.Parent = shell
 
+	local innerGlow = Instance.new('Frame')
+	innerGlow.Name = 'InnerAccentGlow'
+	innerGlow.Size = UDim2.new(1, -28, 0, 58)
+	innerGlow.Position = UDim2.fromOffset(14, 10)
+	innerGlow.BackgroundColor3 = uipallet.Accent
+	innerGlow.BackgroundTransparency = 0.92
+	innerGlow.BorderSizePixel = 0
+	innerGlow.ZIndex = 0
+	innerGlow.Parent = shell
+	addCorner(innerGlow, UDim.new(0, 16))
+	local innerGrad = Instance.new('UIGradient')
+	innerGrad.Rotation = 90
+	innerGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.35),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	innerGrad.Parent = innerGlow
+
 	local topbar = Instance.new('Frame')
 	topbar.Name = 'Topbar'
 	topbar.Size = UDim2.new(1, 0, 0, 58)
 	topbar.BackgroundTransparency = 1
+	topbar.ZIndex = 4
 	topbar.Parent = shell
 
 	local logo = Instance.new('TextLabel')
@@ -2809,22 +2962,22 @@ function mainapi:CreateGUI()
 	local logov4 = Instance.new('Frame')
 	logov4.Name = 'V4Logo'
 	logov4.Size = UDim2.fromOffset(8, 8)
-	logov4.Position = UDim2.fromOffset(110, 2)
+	logov4.Position = UDim2.fromOffset(114, 10)
 	logov4.BackgroundColor3 = uipallet.Accent
 	logov4.BackgroundTransparency = 0
 	logov4.Parent = logo
 	addCorner(logov4, UDim.new(1, 0))
 	addStroke(logov4, uipallet.Accent, 1, 0.35)
-	local logoGlow = addGlow(logov4, 'LogoGlow', 0.46, 44)
+	local logoGlow = addGlow(logov4, 'LogoGlow', 0.58, 48)
 	logoGlow.ImageColor3 = uipallet.Accent
 	task.spawn(function()
 		repeat
-			tween:Tween(logov4, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.28, Size = UDim2.fromOffset(10, 10), Position = UDim2.fromOffset(109, 1)})
-			tween:Tween(logoGlow, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.32})
-			task.wait(0.62)
-			tween:Tween(logov4, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0, Size = UDim2.fromOffset(8, 8), Position = UDim2.fromOffset(110, 2)})
-			tween:Tween(logoGlow, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.52})
-			task.wait(0.62)
+			tween:Tween(logoGlow, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.16})
+			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0})
+			task.wait(0.58)
+			tween:Tween(logoGlow, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.66})
+			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.12})
+			task.wait(0.58)
 		until mainapi.Loaded == nil or not logov4.Parent
 	end)
 
@@ -2848,6 +3001,8 @@ function mainapi:CreateGUI()
 	accentbar.BorderSizePixel = 0
 	accentbar.Parent = topbar
 	addCorner(accentbar, UDim.new(1, 0))
+	local accentGlow = addGlow(accentbar, 'AccentGlow', 0.42, 46)
+	accentGlow.ImageColor3 = uipallet.Accent
 	local accentgrad = Instance.new('UIGradient')
 	accentgrad.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
@@ -2876,7 +3031,7 @@ function mainapi:CreateGUI()
 	sidebar.Parent = shell
 	addCorner(sidebar, UDim.new(0, 14))
 	addStroke(sidebar, uipallet.Border, 1, 0.56)
-	addShadow(sidebar, 'SidebarShadow', 0.64, 50, 5)
+	addShadow(sidebar, 'SidebarShadow', 0.38, 74, 8)
 
 	local content = Instance.new('Frame')
 	content.Name = 'Content'
@@ -2889,7 +3044,7 @@ function mainapi:CreateGUI()
 	content.Parent = shell
 	addCorner(content, UDim.new(0, 14))
 	addStroke(content, uipallet.Border, 1, 0.52)
-	addShadow(content, 'ContentShadow', 0.66, 48, 5)
+	addShadow(content, 'ContentShadow', 0.42, 70, 8)
 	mainapi.PremiumContent = content
 	mainapi.PremiumSidebar = sidebar
 
@@ -2940,8 +3095,9 @@ function mainapi:CreateGUI()
 	settingsicon.ImageColor3 = color.Light(uipallet.Main, 0.37)
 	settingsicon.Parent = settingsbutton
 	local settingspane = Instance.new('TextButton')
-	settingspane.Size = UDim2.new(1, 0, 1, 0)
-	settingspane.Position = UDim2.fromOffset(0, 0)
+	settingspane.Size = UDim2.fromOffset(430, 356)
+	settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
+	settingspane.Position = UDim2.fromScale(0.5, 0.5)
 	settingspane.BackgroundColor3 = uipallet.Surface
 	settingspane.BackgroundTransparency = 0.02
 	settingspane.AutoButtonColor = false
@@ -2950,7 +3106,7 @@ function mainapi:CreateGUI()
 	settingspane.Parent = shell
 	settingspane.ZIndex = 30
 	addCorner(settingspane, UDim.new(0, 18))
-	addShadow(settingspane, 'SettingsShadow', 0.48, 86, 6)
+	addShadow(settingspane, 'SettingsShadow', 0.2, 112, 10)
 	local title = Instance.new('TextLabel')
 	title.Name = 'Title'
 	title.Size = UDim2.new(1, -36, 0, 20)
@@ -2976,16 +3132,18 @@ function mainapi:CreateGUI()
 	settingsversion.Size = UDim2.new(1, 0, 0, 16)
 	settingsversion.Position = UDim2.new(0, 0, 1, -16)
 	settingsversion.BackgroundTransparency = 1
-	settingsversion.Text = 'Silentware '..mainapi.Version..' '..(
-		isfile('vape/profiles/commit.txt') and readfile('vape/profiles/commit.txt'):sub(1, 6) or ''
-	)..' '
+	settingsversion.Text = 'Silentware v1 '
 	settingsversion.TextColor3 = uipallet.MutedText
 	settingsversion.TextXAlignment = Enum.TextXAlignment.Right
 	settingsversion.TextSize = 10
 	settingsversion.FontFace = uipallet.Font
 	settingsversion.Parent = settingspane
-	addCorner(settingspane, UDim.new(0, 10))
-	addStroke(settingspane, uipallet.Border, 1, 0.35)
+	addCorner(settingspane, UDim.new(0, 14))
+	addStroke(settingspane, uipallet.Border, 1, 0.3)
+	local settingsScale = Instance.new('UIScale')
+	settingsScale.Name = 'OpenScale'
+	settingsScale.Scale = 1
+	settingsScale.Parent = settingspane
 	local settingschildren = Instance.new('ScrollingFrame')
 	settingschildren.Name = 'Children'
 	settingschildren.Size = UDim2.new(1, -20, 1, -68)
@@ -3172,7 +3330,7 @@ function mainapi:CreateGUI()
 			accentline.BackgroundTransparency = enabled and 0 or 1
 			accentline.BackgroundColor3 = getAccentColor()
 			activeGlow.ImageColor3 = getAccentColor()
-			tween:Tween(activeGlow, uipallet.Tween, {ImageTransparency = enabled and 0.58 or 1})
+			tween:Tween(activeGlow, uipallet.Tween, {ImageTransparency = enabled and 0.38 or 1})
 			if buttonStroke then
 				buttonStroke.Color = enabled and getAccentColor() or uipallet.Border
 				buttonStroke.Transparency = enabled and 0.32 or 0.64
@@ -3478,8 +3636,11 @@ function mainapi:CreateGUI()
 		arrow.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		arrow.Parent = button
 		local settingspane = Instance.new('TextButton')
-		settingspane.Size = UDim2.fromScale(1, 1)
+		settingspane.Size = UDim2.fromOffset(470, 430)
+		settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
+		settingspane.Position = UDim2.fromScale(0.5, 0.5)
 		settingspane.BackgroundColor3 = uipallet.Surface
+		settingspane.BackgroundTransparency = 0.02
 		settingspane.AutoButtonColor = false
 		settingspane.Visible = false
 		settingspane.Text = ''
@@ -3505,8 +3666,13 @@ function mainapi:CreateGUI()
 		back.Image = getcustomasset('vape/assets/back.png')
 		back.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		back.Parent = settingspane
-		addCorner(settingspane)
-		addStroke(settingspane, uipallet.Border, 1, 0.42)
+		addCorner(settingspane, UDim.new(0, 14))
+		addStroke(settingspane, uipallet.Border, 1, 0.32)
+		addShadow(settingspane, categorysettings.Name..'SettingsShadow', 0.22, 106, 10)
+		local paneScale = Instance.new('UIScale')
+		paneScale.Name = 'OpenScale'
+		paneScale.Scale = 1
+		paneScale.Parent = settingspane
 		local settingschildren = Instance.new('ScrollingFrame')
 		settingschildren.Name = 'Children'
 		settingschildren.Size = UDim2.new(1, -20, 1, -58)
@@ -3559,6 +3725,10 @@ function mainapi:CreateGUI()
 		end)
 		button.MouseButton1Click:Connect(function()
 			settingspane.Visible = true
+			paneScale.Scale = 0.96
+			settingspane.BackgroundTransparency = 0.12
+			tween:Tween(paneScale, uipallet.OpenTween, {Scale = 1})
+			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = 0.02})
 		end)
 		close.MouseButton1Click:Connect(function()
 			settingspane.Visible = false
@@ -4064,7 +4234,9 @@ function mainapi:CreateGUI()
 	end)
 	settingsbutton.MouseButton1Click:Connect(function()
 		settingspane.Visible = true
-		settingspane.BackgroundTransparency = 0.14
+		settingsScale.Scale = 0.96
+		settingspane.BackgroundTransparency = 0.12
+		tween:Tween(settingsScale, uipallet.OpenTween, {Scale = 1})
 		tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = 0.02})
 	end)
 	windowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
@@ -4082,6 +4254,7 @@ function mainapi:CreateGUI()
 	end)
 
 	self.Categories.Main = categoryapi
+	createStartupLoader()
 
 	return categoryapi
 end
@@ -4143,6 +4316,8 @@ function mainapi:CreateCategory(categorysettings)
 	arrow.ImageColor3 = uipallet.MutedText
 	arrow.Rotation = 180
 	arrow.Parent = arrowbutton
+	arrow.Visible = false
+	arrowbutton.Visible = false
 	local children = Instance.new('ScrollingFrame')
 	children.Name = 'Children'
 	children.Size = UDim2.new(1, -12, 1, -49)
@@ -4205,6 +4380,8 @@ function mainapi:CreateCategory(categorysettings)
 		moduleAccent.BorderSizePixel = 0
 		moduleAccent.Parent = modulebutton
 		addCorner(moduleAccent, UDim.new(1, 0))
+		local moduleGlow = addGlow(modulebutton, 'ModuleGlow', 1, 58)
+		moduleGlow.ImageColor3 = getAccentColor()
 		local gradient = Instance.new('UIGradient')
 		gradient.Rotation = 90
 		gradient.Enabled = false
@@ -4340,6 +4517,8 @@ function mainapi:CreateCategory(categorysettings)
 			modulebutton.BackgroundColor3 = self.Enabled and getAccentColor() or ((hovered or modulechildren.Visible) and color.Light(uipallet.SurfaceAlt, 0.03) or uipallet.SurfaceAlt)
 			moduleAccent.BackgroundTransparency = self.Enabled and 0 or 1
 			moduleAccent.BackgroundColor3 = getAccentColor()
+			moduleGlow.ImageColor3 = getAccentColor()
+			tween:Tween(moduleGlow, uipallet.Tween, {ImageTransparency = self.Enabled and 0.46 or 1})
 			if moduleStroke then
 				moduleStroke.Color = self.Enabled and getAccentColor() or uipallet.Border
 				moduleStroke.Transparency = self.Enabled and 0.25 or 0.66
@@ -4500,9 +4679,10 @@ function mainapi:CreateCategory(categorysettings)
 	end
 
 	function categoryapi:Expand(force)
-		self.Expanded = force ~= nil and force or not self.Expanded
-		children.Visible = self.Expanded
-		arrow.Rotation = self.Expanded and 0 or 180
+		self.Expanded = true
+		children.Visible = true
+		arrow.Visible = false
+		arrowbutton.Visible = false
 		window.Size = UDim2.new(1, -20, 1, -20)
 		divider.Visible = children.CanvasPosition.Y > 10 and children.Visible
 	end
@@ -4526,9 +4706,7 @@ function mainapi:CreateCategory(categorysettings)
 		divider.Visible = children.CanvasPosition.Y > 10 and children.Visible
 	end)
 	window.InputBegan:Connect(function(inputObj)
-		if inputObj.Position.Y < window.AbsolutePosition.Y + 41 and inputObj.UserInputType == Enum.UserInputType.MouseButton2 then
-			categoryapi:Expand()
-		end
+		-- Category content is always shown in the premium centered layout.
 	end)
 	windowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		if self.ThreadFix then
