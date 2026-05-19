@@ -632,10 +632,13 @@ local function createStartupLoader()
 	loader.Name = 'SilentwareStartupLoader'
 	loader.Size = UDim2.fromScale(1, 1)
 	loader.BackgroundColor3 = Color3.new(0, 0, 0)
-	loader.BackgroundTransparency = 0.28
+	loader.BackgroundTransparency = 0.42
 	loader.BorderSizePixel = 0
 	loader.ZIndex = 80
-	loader.Parent = scaledgui
+	-- Parent the loader to the ScreenGui instead of the scaled container.
+	-- The scaled container is intentionally larger than the viewport for UI scaling,
+	-- which could show ugly semi-transparent square edges during startup.
+	loader.Parent = gui or scaledgui
 
 	local card = Instance.new('Frame')
 	card.Name = 'LoaderCard'
@@ -731,7 +734,7 @@ local function createStartupLoader()
 	sweepGlow.ImageColor3 = uipallet.Accent
 
 	tween:Tween(cardScale, TweenInfo.new(0.36, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Scale = 1})
-	tween:Tween(loader, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.18})
+	tween:Tween(loader, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.36})
 	tween:Tween(fill, TweenInfo.new(0.92, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.fromScale(1, 1)})
 	tween:Tween(sweep, TweenInfo.new(0.92, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.fromOffset(246, 122), BackgroundTransparency = 0.58})
 
@@ -1075,12 +1078,18 @@ end
 
 do
 	function tween:Tween(obj, tweeninfo, goal, tab)
+		if obj == nil then return end
 		tab = tab or self.tweens
 		if tab[obj] then
 			tab[obj]:Cancel()
 		end
 
-		if obj.Parent and (obj.Visible == nil or obj.Visible) then
+		local shouldTween = obj ~= nil and obj.Parent ~= nil
+		if shouldTween and typeof(obj) == 'Instance' and obj:IsA('GuiObject') then
+			shouldTween = obj.Visible
+		end
+
+		if shouldTween then
 			tab[obj] = tweenService:Create(obj, tweeninfo, goal)
 			tab[obj].Completed:Once(function()
 				if tab then
