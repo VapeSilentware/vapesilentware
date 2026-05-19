@@ -145,7 +145,10 @@ local function stripBom(str)
 	if type(str) ~= "string" then
 		return str
 	end
-	return (str:gsub("^\239\187\191", ""))
+	str = str:gsub("\239\187\191", "")
+	str = str:gsub("^\255\254", "")
+	str = str:gsub("^\254\255", "")
+	return str
 end
 local function fetchSilentwareFile(path)
 	local repos = {swRepo, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
@@ -162,7 +165,13 @@ local function fetchSilentwareFile(path)
 	end
 	error("Failed to fetch "..tostring(path))
 end
-local swChunk, swCompileErr = loadstring(fetchSilentwareFile("libraries/SilentwareFunctions.lua"))
+local swSource = fetchSilentwareFile("libraries/SilentwareFunctions.lua")
+local swChunk, swCompileErr = loadstring(swSource)
+if type(swChunk) ~= "function" then
+	-- Retry with stronger leading-control-byte cleanup for executors that pass BOM/control chars through oddly.
+	swSource = swSource:gsub("^[%z\1-\9\11-\12\14-\31]+", "")
+	swChunk, swCompileErr = loadstring(swSource)
+end
 if type(swChunk) ~= "function" then
 	error("Failed to compile libraries/SilentwareFunctions.lua: "..tostring(swCompileErr))
 end

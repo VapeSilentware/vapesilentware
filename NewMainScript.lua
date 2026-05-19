@@ -416,9 +416,16 @@ local function pload(fileName, isImportant, required)
     if shared.VoidDev and shared.DebugMode then warn(fileName, isImportant, required, debug.traceback(fileName)) end
     local res = vapeGithubRequest(fileName, isImportant)
     if type(res) == "string" then
-        res = res:gsub("^\239\187\191", "")
+        res = res:gsub("\239\187\191", "")
+        res = res:gsub("^\255\254", "")
+        res = res:gsub("^\254\255", "")
+        res = res:gsub("^[%z\1-\9\11-\12\14-\31]+", "")
     end
     local a, loadErr = loadstring(res)
+    if type(a) ~= "function" and type(loadErr) == "string" and (string.find(loadErr, "U+feff") or string.find(string.lower(loadErr), "unicode character")) then
+        res = res:gsub("\239\187\191", ""):gsub("^[%z\1-\9\11-\12\14-\31]+", "")
+        a, loadErr = loadstring(res)
+    end
     local suc, err = true, ""
     if type(a) ~= "function" then
         suc = false
