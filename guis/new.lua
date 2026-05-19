@@ -23,6 +23,8 @@ local mainapi = {
 	ThreadFix = setthreadidentity and true or false,
 	ToggleNotifications = {},
 	Version = 'v1',
+	Access = shared.SilentwareAccess,
+	ThemePreset = 'Emerald Noir',
 	Windows = {}
 }
 mainapi.ThreadFix = false
@@ -50,6 +52,7 @@ local scale
 local gui
 
 local color = {}
+local getAccentColor
 local tween = {
 	tweens = {},
 	tweenstwo = {}
@@ -68,11 +71,307 @@ local uipallet = {
 	Text = Color3.fromRGB(242, 250, 246),
 	MutedText = Color3.fromRGB(151, 175, 164),
 	DimText = Color3.fromRGB(99, 121, 111),
+	AccentGlow = Color3.fromRGB(62, 211, 139),
+	SelectedTab = Color3.fromRGB(21, 45, 34),
+	ActiveToggle = Color3.fromRGB(62, 211, 139),
+	NotificationAccent = Color3.fromRGB(62, 211, 139),
+	GlassTransparency = 0.06,
+	PanelTransparency = 0.05,
+	ShadowTransparency = 0.18,
 	Font = Font.fromEnum(Enum.Font.Gotham),
 	FontSemiBold = Font.fromEnum(Enum.Font.Gotham, Enum.FontWeight.SemiBold),
 	Tween = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	OpenTween = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 }
+
+local access = shared.SilentwareAccess or mainapi.Access or {
+	Tier = 'free',
+	Level = 0,
+	DisplayNames = {free = 'Free'},
+	CanUseModule = function()
+		return true, 'free', 0
+	end
+}
+mainapi.Access = access
+
+local themePresets = {
+	['Emerald Noir'] = {
+		Main = Color3.fromRGB(4, 7, 6),
+		Surface = Color3.fromRGB(9, 14, 12),
+		SurfaceAlt = Color3.fromRGB(15, 23, 19),
+		SurfaceHigh = Color3.fromRGB(22, 33, 27),
+		Border = Color3.fromRGB(49, 77, 64),
+		Accent = Color3.fromRGB(56, 215, 139),
+		AccentSoft = Color3.fromRGB(31, 150, 94),
+		AccentGlow = Color3.fromRGB(77, 255, 171),
+		SelectedTab = Color3.fromRGB(18, 52, 37),
+		ActiveToggle = Color3.fromRGB(56, 215, 139),
+		NotificationAccent = Color3.fromRGB(56, 215, 139),
+		Text = Color3.fromRGB(244, 252, 248),
+		MutedText = Color3.fromRGB(152, 183, 168),
+		DimText = Color3.fromRGB(88, 113, 101),
+		GlassTransparency = 0.05,
+		PanelTransparency = 0.045,
+		ShadowTransparency = 0.15,
+		Hue = 0.405,
+		Sat = 0.72,
+		Value = 0.84,
+		Description = 'deep black glass with rich emerald glow'
+	},
+	['Jade Glass'] = {
+		Main = Color3.fromRGB(3, 10, 10),
+		Surface = Color3.fromRGB(8, 19, 18),
+		SurfaceAlt = Color3.fromRGB(13, 29, 27),
+		SurfaceHigh = Color3.fromRGB(20, 42, 39),
+		Border = Color3.fromRGB(58, 100, 91),
+		Accent = Color3.fromRGB(70, 230, 182),
+		AccentSoft = Color3.fromRGB(35, 166, 128),
+		AccentGlow = Color3.fromRGB(94, 255, 211),
+		SelectedTab = Color3.fromRGB(18, 63, 56),
+		ActiveToggle = Color3.fromRGB(70, 230, 182),
+		NotificationAccent = Color3.fromRGB(92, 255, 211),
+		Text = Color3.fromRGB(238, 255, 250),
+		MutedText = Color3.fromRGB(142, 194, 180),
+		DimText = Color3.fromRGB(85, 133, 120),
+		GlassTransparency = 0.12,
+		PanelTransparency = 0.08,
+		ShadowTransparency = 0.18,
+		Hue = 0.455,
+		Sat = 0.70,
+		Value = 0.90,
+		Description = 'sleek glassy jade with softer blue-green shine'
+	},
+	['Obsidian Mint'] = {
+		Main = Color3.fromRGB(5, 6, 8),
+		Surface = Color3.fromRGB(10, 13, 16),
+		SurfaceAlt = Color3.fromRGB(18, 23, 27),
+		SurfaceHigh = Color3.fromRGB(27, 34, 39),
+		Border = Color3.fromRGB(56, 76, 79),
+		Accent = Color3.fromRGB(109, 244, 178),
+		AccentSoft = Color3.fromRGB(47, 171, 116),
+		AccentGlow = Color3.fromRGB(120, 255, 202),
+		SelectedTab = Color3.fromRGB(25, 55, 45),
+		ActiveToggle = Color3.fromRGB(109, 244, 178),
+		NotificationAccent = Color3.fromRGB(109, 244, 178),
+		Text = Color3.fromRGB(244, 249, 248),
+		MutedText = Color3.fromRGB(158, 178, 176),
+		DimText = Color3.fromRGB(104, 126, 125),
+		GlassTransparency = 0.06,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.16,
+		Hue = 0.395,
+		Sat = 0.55,
+		Value = 0.96,
+		Description = 'clean obsidian panels with premium mint highlights'
+	},
+	['Viridian Luxe'] = {
+		Main = Color3.fromRGB(7, 8, 6),
+		Surface = Color3.fromRGB(14, 16, 12),
+		SurfaceAlt = Color3.fromRGB(22, 27, 19),
+		SurfaceHigh = Color3.fromRGB(31, 39, 27),
+		Border = Color3.fromRGB(75, 87, 56),
+		Accent = Color3.fromRGB(136, 219, 91),
+		AccentSoft = Color3.fromRGB(81, 150, 54),
+		AccentGlow = Color3.fromRGB(172, 255, 115),
+		SelectedTab = Color3.fromRGB(43, 56, 29),
+		ActiveToggle = Color3.fromRGB(136, 219, 91),
+		NotificationAccent = Color3.fromRGB(155, 239, 102),
+		Text = Color3.fromRGB(250, 252, 242),
+		MutedText = Color3.fromRGB(183, 190, 157),
+		DimText = Color3.fromRGB(125, 134, 99),
+		GlassTransparency = 0.045,
+		PanelTransparency = 0.035,
+		ShadowTransparency = 0.13,
+		Hue = 0.265,
+		Sat = 0.58,
+		Value = 0.86,
+		Description = 'expensive warm viridian, less neon and more luxury'
+	},
+	['Toxic Luxury'] = {
+		Main = Color3.fromRGB(5, 8, 5),
+		Surface = Color3.fromRGB(11, 15, 10),
+		SurfaceAlt = Color3.fromRGB(20, 27, 16),
+		SurfaceHigh = Color3.fromRGB(31, 42, 24),
+		Border = Color3.fromRGB(68, 94, 52),
+		Accent = Color3.fromRGB(170, 245, 93),
+		AccentSoft = Color3.fromRGB(94, 170, 56),
+		AccentGlow = Color3.fromRGB(193, 255, 113),
+		SelectedTab = Color3.fromRGB(44, 64, 31),
+		ActiveToggle = Color3.fromRGB(170, 245, 93),
+		NotificationAccent = Color3.fromRGB(170, 245, 93),
+		Text = Color3.fromRGB(250, 255, 240),
+		MutedText = Color3.fromRGB(182, 202, 156),
+		DimText = Color3.fromRGB(116, 140, 94),
+		GlassTransparency = 0.04,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.13,
+		Hue = 0.245,
+		Sat = 0.62,
+		Value = 0.96,
+		Description = 'high-energy toxic green refined with dark luxury surfaces'
+	},
+	['Cyber Forest'] = {
+		Main = Color3.fromRGB(4, 10, 8),
+		Surface = Color3.fromRGB(8, 17, 14),
+		SurfaceAlt = Color3.fromRGB(13, 29, 23),
+		SurfaceHigh = Color3.fromRGB(21, 45, 36),
+		Border = Color3.fromRGB(45, 93, 75),
+		Accent = Color3.fromRGB(49, 226, 132),
+		AccentSoft = Color3.fromRGB(33, 145, 96),
+		AccentGlow = Color3.fromRGB(59, 255, 171),
+		SelectedTab = Color3.fromRGB(15, 60, 40),
+		ActiveToggle = Color3.fromRGB(49, 226, 132),
+		NotificationAccent = Color3.fromRGB(49, 226, 132),
+		Text = Color3.fromRGB(237, 255, 247),
+		MutedText = Color3.fromRGB(136, 188, 159),
+		DimText = Color3.fromRGB(83, 127, 101),
+		GlassTransparency = 0.08,
+		PanelTransparency = 0.06,
+		ShadowTransparency = 0.16,
+		Hue = 0.378,
+		Sat = 0.78,
+		Value = 0.88,
+		Description = 'forest-dark shell with sharper cyber highlights'
+	},
+	['Beta Aurora'] = {
+		Main = Color3.fromRGB(5, 6, 12),
+		Surface = Color3.fromRGB(10, 13, 24),
+		SurfaceAlt = Color3.fromRGB(18, 23, 38),
+		SurfaceHigh = Color3.fromRGB(28, 35, 55),
+		Border = Color3.fromRGB(70, 87, 117),
+		Accent = Color3.fromRGB(71, 232, 164),
+		AccentSoft = Color3.fromRGB(56, 134, 213),
+		AccentGlow = Color3.fromRGB(86, 255, 201),
+		SelectedTab = Color3.fromRGB(28, 48, 68),
+		ActiveToggle = Color3.fromRGB(71, 232, 164),
+		NotificationAccent = Color3.fromRGB(93, 184, 255),
+		Text = Color3.fromRGB(242, 248, 255),
+		MutedText = Color3.fromRGB(157, 180, 207),
+		DimText = Color3.fromRGB(94, 114, 145),
+		GlassTransparency = 0.08,
+		PanelTransparency = 0.055,
+		ShadowTransparency = 0.17,
+		Hue = 0.43,
+		Sat = 0.69,
+		Value = 0.91,
+		Description = 'dark aurora glow for beta/nightly builds'
+	},
+	['Midnight Terminal'] = {
+		Main = Color3.fromRGB(3, 5, 6),
+		Surface = Color3.fromRGB(7, 10, 12),
+		SurfaceAlt = Color3.fromRGB(12, 17, 19),
+		SurfaceHigh = Color3.fromRGB(18, 25, 27),
+		Border = Color3.fromRGB(42, 65, 61),
+		Accent = Color3.fromRGB(82, 213, 151),
+		AccentSoft = Color3.fromRGB(45, 138, 100),
+		AccentGlow = Color3.fromRGB(94, 244, 186),
+		SelectedTab = Color3.fromRGB(17, 41, 35),
+		ActiveToggle = Color3.fromRGB(82, 213, 151),
+		NotificationAccent = Color3.fromRGB(82, 213, 151),
+		Text = Color3.fromRGB(238, 247, 244),
+		MutedText = Color3.fromRGB(141, 165, 159),
+		DimText = Color3.fromRGB(82, 106, 99),
+		GlassTransparency = 0.02,
+		PanelTransparency = 0.02,
+		ShadowTransparency = 0.10,
+		Hue = 0.405,
+		Sat = 0.58,
+		Value = 0.84,
+		Description = 'minimal midnight command-center look with tight contrast'
+	}
+}
+
+local themePresetNames = {'Emerald Noir', 'Jade Glass', 'Obsidian Mint', 'Viridian Luxe', 'Toxic Luxury', 'Cyber Forest', 'Beta Aurora', 'Midnight Terminal'}
+
+local function applyThemeToPalette(presetName)
+	local preset = themePresets[presetName] or themePresets['Emerald Noir']
+	for key, value in pairs(preset) do
+		if uipallet[key] ~= nil and (typeof(value) == 'Color3' or type(value) == 'number') then
+			uipallet[key] = value
+		end
+	end
+	uipallet.Success = preset.Accent or uipallet.Success
+	uipallet.AccentGlow = preset.AccentGlow or preset.Accent or uipallet.AccentGlow
+	uipallet.SelectedTab = preset.SelectedTab or uipallet.SelectedTab
+	uipallet.ActiveToggle = preset.ActiveToggle or preset.Accent or uipallet.ActiveToggle
+	uipallet.NotificationAccent = preset.NotificationAccent or preset.Accent or uipallet.NotificationAccent
+	mainapi.ThemePreset = presetName
+	mainapi.GUIColor.Hue = preset.Hue or mainapi.GUIColor.Hue
+	mainapi.GUIColor.Sat = preset.Sat or mainapi.GUIColor.Sat
+	mainapi.GUIColor.Value = preset.Value or mainapi.GUIColor.Value
+	return preset
+end
+
+pcall(function()
+	if isfile and isfile('vape/SilentwareTheme.txt') then
+		local savedTheme = tostring(readfile('vape/SilentwareTheme.txt') or ''):gsub('^%s+', ''):gsub('%s+$', '')
+		if themePresets[savedTheme] then mainapi.ThemePreset = savedTheme end
+	end
+end)
+applyThemeToPalette(mainapi.ThemePreset)
+
+local function refreshPremiumTheme()
+	local accent = getAccentColor()
+	if mainapi.PremiumShell then mainapi.PremiumShell.BackgroundColor3 = uipallet.Surface end
+	if mainapi.PremiumSidebar then mainapi.PremiumSidebar.BackgroundColor3 = color.Light(uipallet.Main, 0.015) end
+	if mainapi.PremiumContent then mainapi.PremiumContent.BackgroundColor3 = color.Light(uipallet.Main, 0.012) end
+	if mainapi.PremiumGlow then
+		mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or accent
+		mainapi.PremiumGlow.ImageTransparency = 0.74
+	end
+	if mainapi.PremiumShadow then mainapi.PremiumShadow.ImageTransparency = uipallet.ShadowTransparency or 0.15 end
+	if notifications then
+		for _, obj in notifications:GetDescendants() do
+			if obj:IsA('TextLabel') or obj:IsA('TextButton') or obj:IsA('TextBox') then
+				obj.TextColor3 = uipallet.Text
+			end
+		end
+	end
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			if obj:IsA('UIStroke') then
+				if obj.Color ~= accent then obj.Color = uipallet.Border end
+			elseif obj:IsA('TextLabel') or obj:IsA('TextButton') or obj:IsA('TextBox') then
+				if obj.Name == 'Version' or obj.Name == 'Subtitle' then
+					obj.TextColor3 = uipallet.MutedText
+				elseif obj.TextTransparency < 1 then
+					obj.TextColor3 = uipallet.Text
+				end
+			elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+				if obj.Name:find('Glow') or obj.Name:find('Accent') then obj.ImageColor3 = accent end
+			elseif obj:IsA('Frame') then
+				if obj.Name == 'AccentLine' or obj.Name == 'StatusDot' or obj.Name:find('Accent') or obj.Name == 'Fill' then
+					obj.BackgroundColor3 = accent
+				end
+			end
+		end
+	end
+	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
+end
+
+function mainapi:ApplyThemePreset(presetName)
+	local preset = applyThemeToPalette(presetName)
+	refreshPremiumTheme()
+	pcall(function()
+		if writefile then writefile('vape/SilentwareTheme.txt', tostring(presetName)) end
+	end)
+	if self.CreateNotification then
+		self:CreateNotification('Theme applied', tostring(presetName)..' — '..tostring(preset.Description or 'premium theme'), 3)
+	end
+	return preset
+end
+
+local function accessCanUseModule(category, moduleName)
+	local currentAccess = shared.SilentwareAccess or mainapi.Access or access
+	if type(currentAccess) == 'table' and type(currentAccess.CanUseModule) == 'function' then
+		local ok, allowed, tier, level = pcall(function()
+			local a, b, c = currentAccess:CanUseModule(category, moduleName)
+			return a, b, c
+		end)
+		if ok then return allowed, tier, level end
+	end
+	return true, 'free', 0
+end
 
 local getcustomassets = {
 	['vape/assets/add.png'] = 'rbxassetid://14368300605',
@@ -199,7 +498,7 @@ local function styleListLayout(layout, padding)
 	return layout
 end
 
-local function getAccentColor(hue, sat, val)
+function getAccentColor(hue, sat, val)
 	return Color3.fromHSV(hue or mainapi.GUIColor.Hue, sat or mainapi.GUIColor.Sat, val or mainapi.GUIColor.Value)
 end
 
@@ -253,13 +552,50 @@ local function makePremiumWindowFrame(parent, name, size, position)
 	frame.Size = size
 	frame.Position = position
 	frame.BackgroundColor3 = uipallet.Surface
-	frame.BackgroundTransparency = 0.06
+	frame.BackgroundTransparency = uipallet.GlassTransparency or 0.06
 	frame.BorderSizePixel = 0
 	frame.ClipsDescendants = false
 	frame.Parent = parent
-	addCorner(frame, UDim.new(0, 18))
-	addStroke(frame, uipallet.Border, 1, 0.38)
+	addCorner(frame, UDim.new(0, 20))
+	addStroke(frame, uipallet.Border, 1, 0.34)
 	return frame
+end
+
+local function addSurfaceGradient(parent, topColor, bottomColor, rotation)
+	local gradient = Instance.new('UIGradient')
+	gradient.Rotation = rotation or 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, topColor or color.Light(uipallet.Surface, 0.035)),
+		ColorSequenceKeypoint.new(1, bottomColor or uipallet.Main)
+	})
+	gradient.Parent = parent
+	return gradient
+end
+
+local function createAmbientOrb(parent, name, size, position, transparency, zindex)
+	local orb = Instance.new('Frame')
+	orb.Name = name
+	orb.Size = UDim2.fromOffset(size, size)
+	orb.Position = position
+	orb.BackgroundColor3 = uipallet.AccentGlow or uipallet.Accent
+	orb.BackgroundTransparency = transparency or 0.9
+	orb.BorderSizePixel = 0
+	orb.ZIndex = zindex or 0
+	orb.Parent = parent
+	addCorner(orb, UDim.new(1, 0))
+	local glow = addGlow(orb, name..'Glow', 0.32, math.floor(size * 1.9))
+	glow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
+	return orb, glow
+end
+
+local function stylePremiumAction(object, strokeTransparency)
+	if not object then return end
+	object.BackgroundColor3 = uipallet.SurfaceAlt
+	object.BackgroundTransparency = object.BackgroundTransparency or 0.08
+	object.BorderSizePixel = 0
+	addCorner(object, UDim.new(0, 10))
+	addStroke(object, uipallet.Border, 1, strokeTransparency or 0.58)
+	return object
 end
 
 local function animatePremiumOpen()
@@ -272,7 +608,7 @@ local function animatePremiumOpen()
 	shell.Position = UDim2.fromScale(0.5, 0.515)
 	shell.BackgroundTransparency = 0.18
 	if mainapi.PremiumGlow then
-		mainapi.PremiumGlow.ImageTransparency = 1
+		mainapi.PremiumGlow.ImageTransparency = 0.88
 	end
 	if shellscale then
 		tween:Tween(shellscale, uipallet.OpenTween, {Scale = 1})
@@ -283,7 +619,7 @@ local function animatePremiumOpen()
 	})
 	if mainapi.PremiumGlow then
 		tween:Tween(mainapi.PremiumGlow, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-			ImageTransparency = 1
+			ImageTransparency = 0.74
 		})
 	end
 end
@@ -906,7 +1242,7 @@ components = {
 		optionsettings.Function = hookCF(optionsettings.Function, optionsettings)
 		local button = Instance.new('TextButton')
 		button.Name = optionsettings.Name..'Button'
-		button.Size = UDim2.new(1, 0, 0, 36)
+		button.Size = UDim2.new(1, 0, 0, 40)
 		button.BackgroundColor3 = color.Dark(children.BackgroundColor3, optionsettings.Darker and 0.02 or 0)
 		button.BorderSizePixel = 0
 		button.AutoButtonColor = false
@@ -919,14 +1255,14 @@ components = {
 		bkg.Position = UDim2.fromOffset(10, 3)
 		bkg.BackgroundColor3 = uipallet.SurfaceAlt
 		bkg.Parent = button
-		styleShell(bkg, UDim.new(0, 8), 0.6)
+		styleShell(bkg, UDim.new(0, 10), 0.52)
 		local label = Instance.new('TextLabel')
 		label.Size = UDim2.new(1, -4, 1, -4)
 		label.Position = UDim2.fromOffset(2, 2)
-		label.BackgroundColor3 = uipallet.Surface
+		label.BackgroundColor3 = color.Light(uipallet.Surface, 0.018)
 		label.Text = optionsettings.Name
 		label.TextColor3 = color.Dark(uipallet.Text, 0.08)
-		label.TextSize = 14
+		label.TextSize = 13
 		label.FontFace = uipallet.Font
 		label.Parent = bkg
 		addCorner(label, UDim.new(0, 7))
@@ -959,7 +1295,7 @@ components = {
 		local function createSlider(name, gradientColor)
 			local slider = Instance.new('TextButton')
 			slider.Name = optionsettings.Name..'Slider'..name
-			slider.Size = UDim2.new(1, 0, 0, 50)
+			slider.Size = UDim2.new(1, 0, 0, 54)
 			slider.BackgroundColor3 = color.Dark(children.BackgroundColor3, optionsettings.Darker and 0.02 or 0)
 			slider.BorderSizePixel = 0
 			slider.AutoButtonColor = false
@@ -979,12 +1315,13 @@ components = {
 			title.Parent = slider
 			local bkg = Instance.new('Frame')
 			bkg.Name = 'Slider'
-			bkg.Size = UDim2.new(1, -20, 0, 4)
-			bkg.Position = UDim2.fromOffset(10, 37)
+			bkg.Size = UDim2.new(1, -20, 0, 5)
+			bkg.Position = UDim2.fromOffset(10, 39)
 			bkg.BackgroundColor3 = Color3.new(1, 1, 1)
 			bkg.BorderSizePixel = 0
 			bkg.Parent = slider
-			local gradient = Instance.new('UIGradient')
+
+		local gradient = Instance.new('UIGradient')
 			gradient.Color = gradientColor
 			gradient.Parent = bkg
 			local fill = bkg:Clone()
@@ -1003,7 +1340,7 @@ components = {
 			knobholder.Parent = fill
 			local knob = Instance.new('Frame')
 			knob.Name = 'Knob'
-			knob.Size = UDim2.fromOffset(13, 13)
+			knob.Size = UDim2.fromOffset(14, 14)
 			knob.Position = UDim2.fromScale(0.5, 0.5)
 			knob.AnchorPoint = Vector2.new(0.5, 0.5)
 			knob.BackgroundColor3 = uipallet.Text
@@ -1080,7 +1417,7 @@ components = {
 		valuebox.Parent = slider
 		local bkg = Instance.new('Frame')
 		bkg.Name = 'Slider'
-		bkg.Size = UDim2.new(1, -20, 0, 4)
+		bkg.Size = UDim2.new(1, -20, 0, 5)
 		bkg.Position = UDim2.fromOffset(10, 39)
 		bkg.BackgroundColor3 = Color3.new(1, 1, 1)
 		bkg.BorderSizePixel = 0
@@ -1089,6 +1426,7 @@ components = {
 		for i = 0, 1, 0.1 do
 			table.insert(rainbowTable, ColorSequenceKeypoint.new(i, Color3.fromHSV(i, 1, 1)))
 		end
+
 		local gradient = Instance.new('UIGradient')
 		gradient.Color = ColorSequence.new(rainbowTable)
 		gradient.Parent = bkg
@@ -1386,7 +1724,7 @@ components = {
 		bkg.Position = UDim2.fromOffset(10, 4)
 		bkg.BackgroundColor3 = uipallet.SurfaceAlt
 		bkg.Parent = dropdown
-		styleShell(bkg, UDim.new(0, 8), 0.6)
+		styleShell(bkg, UDim.new(0, 10), 0.52)
 		local button = Instance.new('TextButton')
 		button.Name = 'Dropdown'
 		button.Size = UDim2.new(1, -2, 1, -2)
@@ -1578,7 +1916,7 @@ components = {
 		
 		local slider = Instance.new('TextButton')
 		slider.Name = optionsettings.Name..'Slider'
-		slider.Size = UDim2.new(1, 0, 0, 50)
+		slider.Size = UDim2.new(1, 0, 0, 54)
 		slider.BackgroundColor3 = color.Dark(children.BackgroundColor3, optionsettings.Darker and 0.02 or 0)
 		slider.BorderSizePixel = 0
 		slider.AutoButtonColor = false
@@ -1623,8 +1961,8 @@ components = {
 		valuebox.Parent = slider
 		local bkg = Instance.new('Frame')
 		bkg.Name = 'Slider'
-		bkg.Size = UDim2.new(1, -20, 0, 4)
-		bkg.Position = UDim2.fromOffset(10, 37)
+		bkg.Size = UDim2.new(1, -20, 0, 5)
+		bkg.Position = UDim2.fromOffset(10, 39)
 		bkg.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
 		bkg.BorderSizePixel = 0
 		bkg.Parent = slider
@@ -1632,7 +1970,7 @@ components = {
 		fill.Name = 'Fill'
 		fill.Size = UDim2.fromScale(math.clamp((optionapi.Value - optionsettings.Min) / optionsettings.Max, 0.04, 0.96), 1)
 		fill.Position = UDim2.new()
-		fill.BackgroundColor3 = Color3.fromHSV(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+		fill.BackgroundColor3 = getAccentColor()
 		fill.Parent = bkg
 		local knobholder = Instance.new('Frame')
 		knobholder.Name = 'Knob'
@@ -1644,10 +1982,10 @@ components = {
 		knobholder.Parent = fill
 		local knob = Instance.new('Frame')
 		knob.Name = 'Knob'
-		knob.Size = UDim2.fromOffset(13, 13)
+		knob.Size = UDim2.fromOffset(14, 14)
 		knob.Position = UDim2.fromScale(0.5, 0.5)
 		knob.AnchorPoint = Vector2.new(0.5, 0.5)
-		knob.BackgroundColor3 = Color3.fromHSV(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+		knob.BackgroundColor3 = getAccentColor()
 		knob.Parent = knobholder
 		addCorner(knob, UDim.new(1, 0))
 		optionsettings.Function = optionsettings.Function or function() end
@@ -1831,7 +2169,7 @@ components = {
 		local title = Instance.new('TextLabel')
 		title.Name = 'Title'
 		title.Size = UDim2.new(1, -36, 0, 20)
-		title.Position = UDim2.fromOffset(math.abs(title.Size.X.Offset), 11)
+		title.Position = UDim2.fromOffset(36, 12)
 		title.BackgroundTransparency = 1
 		title.Text = 'Target settings'
 		title.TextXAlignment = Enum.TextXAlignment.Left
@@ -2240,7 +2578,7 @@ components = {
 		local title = Instance.new('TextLabel')
 		title.Name = 'Title'
 		title.Size = UDim2.new(1, -36, 0, 20)
-		title.Position = UDim2.fromOffset(math.abs(title.Size.X.Offset), 11)
+		title.Position = UDim2.fromOffset(36, 12)
 		title.BackgroundTransparency = 1
 		title.Text = optionsettings.Name
 		title.TextXAlignment = Enum.TextXAlignment.Left
@@ -2615,7 +2953,7 @@ components = {
 		
 		local slider = Instance.new('TextButton')
 		slider.Name = optionsettings.Name..'Slider'
-		slider.Size = UDim2.new(1, 0, 0, 50)
+		slider.Size = UDim2.new(1, 0, 0, 54)
 		slider.BackgroundColor3 = color.Dark(children.BackgroundColor3, optionsettings.Darker and 0.02 or 0)
 		slider.BorderSizePixel = 0
 		slider.AutoButtonColor = false
@@ -2668,7 +3006,7 @@ components = {
 		local bkg = Instance.new('Frame')
 		bkg.Name = 'Slider'
 		bkg.Size = UDim2.new(1, -20, 0, 2)
-		bkg.Position = UDim2.fromOffset(10, 37)
+		bkg.Position = UDim2.fromOffset(10, 39)
 		bkg.BackgroundColor3 = color.Light(uipallet.Main, 0.034)
 		bkg.BorderSizePixel = 0
 		bkg.Parent = slider
@@ -2676,7 +3014,7 @@ components = {
 		fill.Name = 'Fill'
 		fill.Position = UDim2.fromScale(math.clamp(optionapi.ValueMin / optionsettings.Max, 0.04, 0.96), 0)
 		fill.Size = UDim2.fromScale(math.clamp(math.clamp(optionapi.ValueMax / optionsettings.Max, 0, 1), 0.04, 0.96) - fill.Position.X.Scale, 1)
-		fill.BackgroundColor3 = Color3.fromHSV(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+		fill.BackgroundColor3 = getAccentColor()
 		fill.Parent = bkg
 		local knobholder = Instance.new('Frame')
 		knobholder.Name = 'Knob'
@@ -2895,6 +3233,15 @@ end
 
 addMaid(mainapi)
 
+function mainapi:RefreshAccessLocks()
+	self.Access = shared.SilentwareAccess or self.Access or access
+	for _, moduleapi in pairs(self.Modules) do
+		if type(moduleapi.ApplyAccessState) == 'function' then
+			moduleapi:ApplyAccessState()
+		end
+	end
+end
+
 function mainapi:CreateGUI()
 	local categoryapi = {
 		Type = 'MainWindow',
@@ -2902,35 +3249,35 @@ function mainapi:CreateGUI()
 		Options = {}
 	}
 
-	local shell = makePremiumWindowFrame(clickgui, 'PremiumMainWindow', UDim2.fromOffset(796, 572), UDim2.fromScale(0.5, 0.5))
+	createStartupLoader()
+
+	local shell = makePremiumWindowFrame(clickgui, 'PremiumMainWindow', UDim2.fromOffset(842, 602), UDim2.fromScale(0.5, 0.5))
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.ClipsDescendants = false
 	mainapi.PremiumShell = shell
-	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', 0.18, 138, 14)
-	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 1, 72)
-	mainapi.PremiumGlow.ImageColor3 = uipallet.Accent
+	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', uipallet.ShadowTransparency or 0.14, 168, 18)
+	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.78, 92)
+	mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
 	local shellscale = Instance.new('UIScale')
 	shellscale.Name = 'OpenScale'
 	shellscale.Scale = 0.965
 	shellscale.Parent = shell
 	mainapi.PremiumScale = shellscale
 
-	local shellGradient = Instance.new('UIGradient')
-	shellGradient.Rotation = 90
-	shellGradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, color.Light(uipallet.Surface, 0.025)),
-		ColorSequenceKeypoint.new(1, uipallet.Main)
-	})
-	shellGradient.Parent = shell
+	local shellGradient = addSurfaceGradient(shell, color.Light(uipallet.Surface, 0.045), uipallet.Main, 90)
+	local orbA, orbAGlow = createAmbientOrb(shell, 'AmbientOrbPrimary', 160, UDim2.new(1, -92, 0, -88), 0.94, 0)
+	local orbB, orbBGlow = createAmbientOrb(shell, 'AmbientOrbSecondary', 116, UDim2.fromOffset(-54, 436), 0.955, 0)
+	orbB.BackgroundColor3 = uipallet.AccentSoft
+	orbBGlow.ImageColor3 = uipallet.AccentSoft
 
 	local innerGlow = Instance.new('Frame')
 	innerGlow.Name = 'InnerAccentGlow'
 	innerGlow.Size = UDim2.new(1, -28, 0, 58)
 	innerGlow.Position = UDim2.fromOffset(14, 10)
 	innerGlow.BackgroundColor3 = uipallet.Accent
-	innerGlow.BackgroundTransparency = 0.92
+	innerGlow.BackgroundTransparency = 0.88
 	innerGlow.BorderSizePixel = 0
-	innerGlow.ZIndex = 0
+	innerGlow.ZIndex = 1
 	innerGlow.Parent = shell
 	addCorner(innerGlow, UDim.new(0, 16))
 	local innerGrad = Instance.new('UIGradient')
@@ -2945,13 +3292,13 @@ function mainapi:CreateGUI()
 	topbar.Name = 'Topbar'
 	topbar.Size = UDim2.new(1, 0, 0, 58)
 	topbar.BackgroundTransparency = 1
-	topbar.ZIndex = 4
+	topbar.ZIndex = 8
 	topbar.Parent = shell
 
 	local logo = Instance.new('TextLabel')
 	logo.Name = 'VapeLogo'
-	logo.Size = UDim2.fromOffset(176, 28)
-	logo.Position = UDim2.fromOffset(22, 16)
+	logo.Size = UDim2.fromOffset(198, 28)
+	logo.Position = UDim2.fromOffset(24, 15)
 	logo.BackgroundTransparency = 1
 	logo.Text = 'Silentware'
 	logo.TextXAlignment = Enum.TextXAlignment.Left
@@ -2960,31 +3307,31 @@ function mainapi:CreateGUI()
 	logo.FontFace = uipallet.FontSemiBold
 	logo.Parent = topbar
 	local logov4 = Instance.new('Frame')
-	logov4.Name = 'V4Logo'
+	logov4.Name = 'StatusDot'
 	logov4.Size = UDim2.fromOffset(8, 8)
-	logov4.Position = UDim2.fromOffset(114, 10)
+	logov4.Position = UDim2.fromOffset(123, 11)
 	logov4.BackgroundColor3 = uipallet.Accent
 	logov4.BackgroundTransparency = 0
 	logov4.Parent = logo
 	addCorner(logov4, UDim.new(1, 0))
 	addStroke(logov4, uipallet.Accent, 1, 0.35)
 	local logoGlow = addGlow(logov4, 'LogoGlow', 0.58, 48)
-	logoGlow.ImageColor3 = uipallet.Accent
+	logoGlow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
 	task.spawn(function()
 		repeat
-			tween:Tween(logoGlow, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.16})
+			tween:Tween(logoGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.05})
 			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0})
-			task.wait(0.58)
-			tween:Tween(logoGlow, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.66})
+			task.wait(0.7)
+			tween:Tween(logoGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.64})
 			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.12})
-			task.wait(0.58)
+			task.wait(0.7)
 		until mainapi.Loaded == nil or not logov4.Parent
 	end)
 
 	local subtitle = Instance.new('TextLabel')
 	subtitle.Name = 'Subtitle'
 	subtitle.Size = UDim2.fromOffset(240, 18)
-	subtitle.Position = UDim2.fromOffset(22, 38)
+	subtitle.Position = UDim2.fromOffset(24, 39)
 	subtitle.BackgroundTransparency = 1
 	subtitle.Text = 'v1.0'
 	subtitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -2992,6 +3339,24 @@ function mainapi:CreateGUI()
 	subtitle.TextSize = 11
 	subtitle.FontFace = uipallet.Font
 	subtitle.Parent = topbar
+
+	local tierpill = Instance.new('TextLabel')
+	tierpill.Name = 'AccessTierPill'
+	tierpill.Size = UDim2.fromOffset(92, 22)
+	tierpill.Position = UDim2.fromOffset(174, 18)
+	tierpill.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
+	tierpill.BackgroundTransparency = 0.12
+	tierpill.BorderSizePixel = 0
+	tierpill.Text = tostring((access.DisplayNames and access.DisplayNames[access.Tier]) or access.Tier or 'Free')
+	tierpill.TextColor3 = getAccentColor()
+	tierpill.TextSize = 10
+	tierpill.FontFace = uipallet.FontSemiBold
+	tierpill.Parent = topbar
+	addCorner(tierpill, UDim.new(1, 0))
+	addStroke(tierpill, getAccentColor(), 1, 0.42)
+	local tierGlow = addGlow(tierpill, 'TierGlow', 0.7, 52)
+	tierGlow.ImageColor3 = getAccentColor()
+	mainapi.AccessTierPill = tierpill
 
 	local accentbar = Instance.new('Frame')
 	accentbar.Name = 'AccentBar'
@@ -3022,29 +3387,29 @@ function mainapi:CreateGUI()
 
 	local sidebar = Instance.new('Frame')
 	sidebar.Name = 'Sidebar'
-	sidebar.Size = UDim2.fromOffset(242, 489)
-	sidebar.Position = UDim2.fromOffset(17, 70)
+	sidebar.Size = UDim2.fromOffset(246, 516)
+	sidebar.Position = UDim2.fromOffset(18, 70)
 	sidebar.BackgroundColor3 = color.Light(uipallet.Main, 0.015)
-	sidebar.BackgroundTransparency = 0.1
+	sidebar.BackgroundTransparency = 0.07
 	sidebar.BorderSizePixel = 0
 	sidebar.ClipsDescendants = false
 	sidebar.Parent = shell
 	addCorner(sidebar, UDim.new(0, 14))
 	addStroke(sidebar, uipallet.Border, 1, 0.56)
-	addShadow(sidebar, 'SidebarShadow', 0.38, 74, 8)
+	addShadow(sidebar, 'SidebarShadow', 0.28, 96, 10)
 
 	local content = Instance.new('Frame')
 	content.Name = 'Content'
-	content.Size = UDim2.fromOffset(507, 489)
-	content.Position = UDim2.fromOffset(274, 70)
+	content.Size = UDim2.fromOffset(550, 516)
+	content.Position = UDim2.fromOffset(276, 70)
 	content.BackgroundColor3 = color.Light(uipallet.Main, 0.012)
-	content.BackgroundTransparency = 0.05
+	content.BackgroundTransparency = uipallet.PanelTransparency or 0.05
 	content.BorderSizePixel = 0
-	content.ClipsDescendants = true
+	content.ClipsDescendants = false
 	content.Parent = shell
 	addCorner(content, UDim.new(0, 14))
 	addStroke(content, uipallet.Border, 1, 0.52)
-	addShadow(content, 'ContentShadow', 0.42, 70, 8)
+	addShadow(content, 'ContentShadow', 0.30, 92, 10)
 	mainapi.PremiumContent = content
 	mainapi.PremiumSidebar = sidebar
 
@@ -3095,22 +3460,22 @@ function mainapi:CreateGUI()
 	settingsicon.ImageColor3 = color.Light(uipallet.Main, 0.37)
 	settingsicon.Parent = settingsbutton
 	local settingspane = Instance.new('TextButton')
-	settingspane.Size = UDim2.fromOffset(430, 356)
+	settingspane.Size = UDim2.fromOffset(438, 390)
 	settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
 	settingspane.Position = UDim2.fromScale(0.5, 0.5)
 	settingspane.BackgroundColor3 = uipallet.Surface
-	settingspane.BackgroundTransparency = 0.02
+	settingspane.BackgroundTransparency = uipallet.PanelTransparency or 0.02
 	settingspane.AutoButtonColor = false
 	settingspane.Visible = false
 	settingspane.Text = ''
 	settingspane.Parent = shell
 	settingspane.ZIndex = 30
 	addCorner(settingspane, UDim.new(0, 18))
-	addShadow(settingspane, 'SettingsShadow', 0.2, 112, 10)
+	addShadow(settingspane, 'SettingsShadow', 0.14, 132, 12)
 	local title = Instance.new('TextLabel')
 	title.Name = 'Title'
 	title.Size = UDim2.new(1, -36, 0, 20)
-	title.Position = UDim2.fromOffset(math.abs(title.Size.X.Offset), 11)
+	title.Position = UDim2.fromOffset(36, 12)
 	title.BackgroundTransparency = 1
 	title.Text = 'Settings'
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -3146,8 +3511,8 @@ function mainapi:CreateGUI()
 	settingsScale.Parent = settingspane
 	local settingschildren = Instance.new('ScrollingFrame')
 	settingschildren.Name = 'Children'
-	settingschildren.Size = UDim2.new(1, -20, 1, -68)
-	settingschildren.Position = UDim2.fromOffset(10, 45)
+	settingschildren.Size = UDim2.new(1, -24, 1, -72)
+	settingschildren.Position = UDim2.fromOffset(12, 46)
 	settingschildren.BackgroundColor3 = uipallet.Surface
 	settingschildren.BackgroundTransparency = 1
 	settingschildren.BorderSizePixel = 0
@@ -3309,28 +3674,30 @@ function mainapi:CreateGUI()
 			addCorner(label)
 			mainapi.ProfileLabel = label
 		end
-		local arrow = Instance.new('ImageLabel')
-		arrow.Name = 'Arrow'
-		arrow.Size = UDim2.fromOffset(4, 8)
-		arrow.Position = UDim2.new(1, -20, 0, 16)
+		local arrow = Instance.new('Frame')
+		arrow.Name = 'SelectionPip'
+		arrow.Size = UDim2.fromOffset(6, 6)
+		arrow.Position = UDim2.new(1, -20, 0, 18)
 		arrow.BackgroundTransparency = 1
-		arrow.Image = getcustomasset('vape/assets/expandright.png')
-		arrow.ImageColor3 = color.Light(uipallet.Main, 0.37)
+		arrow.BackgroundColor3 = getAccentColor()
+		arrow.BorderSizePixel = 0
 		arrow.Parent = button
+		addCorner(arrow, UDim.new(1, 0))
 		optionapi.Name = categorysettings.Name
 		optionapi.Icon = icon
 		optionapi.Object = button
 
 		local function applyState(enabled)
 			tween:Tween(arrow, uipallet.Tween, {
-				Position = UDim2.new(1, enabled and -14 or -20, 0, 16)
+				BackgroundTransparency = enabled and 0.1 or 1,
+				Position = UDim2.new(1, enabled and -18 or -20, 0, 18)
 			})
 			button.TextColor3 = enabled and getAccentColor() or color.Dark(uipallet.Text, 0.12)
-			button.BackgroundColor3 = enabled and color.Light(uipallet.SurfaceAlt, 0.055) or uipallet.SurfaceAlt
+			button.BackgroundColor3 = enabled and uipallet.SelectedTab or uipallet.SurfaceAlt
 			accentline.BackgroundTransparency = enabled and 0 or 1
 			accentline.BackgroundColor3 = getAccentColor()
 			activeGlow.ImageColor3 = getAccentColor()
-			tween:Tween(activeGlow, uipallet.Tween, {ImageTransparency = enabled and 0.38 or 1})
+			tween:Tween(activeGlow, uipallet.Tween, {ImageTransparency = enabled and 0.22 or 1})
 			if buttonStroke then
 				buttonStroke.Color = enabled and getAccentColor() or uipallet.Border
 				buttonStroke.Transparency = enabled and 0.32 or 0.64
@@ -3505,18 +3872,14 @@ function mainapi:CreateGUI()
 			local knobmain = knob:Clone()
 			knobmain.Size = UDim2.fromOffset(10, 10)
 			knobmain.Position = UDim2.fromOffset(2, 2)
-			knobmain.BackgroundColor3 = uipallet.Surface
+			knobmain.BackgroundColor3 = color.Light(uipallet.Surface, 0.06)
 			knobmain.Parent = knob
 			toggleapi.Object = toggle
 
 			function toggleapi:Toggle()
 				self.Enabled = not self.Enabled
 				tween:Tween(knob, uipallet.Tween, {
-					BackgroundColor3 = self.Enabled and Color3.fromHSV(
-						mainapi.GUIColor.Hue,
-						mainapi.GUIColor.Sat,
-						mainapi.GUIColor.Value
-					) or (hovered and color.Light(uipallet.Main, 0.37) or color.Light(uipallet.Main, 0.14))
+					BackgroundColor3 = self.Enabled and getAccentColor() or (hovered and color.Light(uipallet.Main, 0.37) or color.Light(uipallet.Main, 0.14))
 				})
 				tween:Tween(knobmain, uipallet.Tween, {
 					Position = UDim2.fromOffset(self.Enabled and 16 or 2, 2)
@@ -3636,11 +3999,11 @@ function mainapi:CreateGUI()
 		arrow.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		arrow.Parent = button
 		local settingspane = Instance.new('TextButton')
-		settingspane.Size = UDim2.fromOffset(470, 430)
+		settingspane.Size = UDim2.fromOffset(486, 438)
 		settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
 		settingspane.Position = UDim2.fromScale(0.5, 0.5)
 		settingspane.BackgroundColor3 = uipallet.Surface
-		settingspane.BackgroundTransparency = 0.02
+		settingspane.BackgroundTransparency = uipallet.PanelTransparency or 0.02
 		settingspane.AutoButtonColor = false
 		settingspane.Visible = false
 		settingspane.Text = ''
@@ -3649,7 +4012,7 @@ function mainapi:CreateGUI()
 		local title = Instance.new('TextLabel')
 		title.Name = 'Title'
 		title.Size = UDim2.new(1, -36, 0, 20)
-		title.Position = UDim2.fromOffset(math.abs(title.Size.X.Offset), 11)
+		title.Position = UDim2.fromOffset(36, 12)
 		title.BackgroundTransparency = 1
 		title.Text = categorysettings.Name
 		title.TextXAlignment = Enum.TextXAlignment.Left
@@ -3667,16 +4030,16 @@ function mainapi:CreateGUI()
 		back.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		back.Parent = settingspane
 		addCorner(settingspane, UDim.new(0, 14))
-		addStroke(settingspane, uipallet.Border, 1, 0.32)
-		addShadow(settingspane, categorysettings.Name..'SettingsShadow', 0.22, 106, 10)
+		addStroke(settingspane, uipallet.Border, 1, 0.26)
+		addShadow(settingspane, categorysettings.Name..'SettingsShadow', 0.14, 128, 12)
 		local paneScale = Instance.new('UIScale')
 		paneScale.Name = 'OpenScale'
 		paneScale.Scale = 1
 		paneScale.Parent = settingspane
 		local settingschildren = Instance.new('ScrollingFrame')
 		settingschildren.Name = 'Children'
-		settingschildren.Size = UDim2.new(1, -20, 1, -58)
-		settingschildren.Position = UDim2.fromOffset(10, 46)
+		settingschildren.Size = UDim2.new(1, -24, 1, -62)
+		settingschildren.Position = UDim2.fromOffset(12, 48)
 		settingschildren.BackgroundColor3 = uipallet.Surface
 		settingschildren.BackgroundTransparency = 1
 		settingschildren.BorderSizePixel = 0
@@ -3700,6 +4063,9 @@ function mainapi:CreateGUI()
 			end
 		end)
 
+		optionapi.Object = settingspane
+		optionapi.Children = settingschildren
+		optionapi.ListLayout = settingswindowlist
 		for i, v in components do
 			optionapi['Create'..i] = function(_, settings)
 				return v(settings, settingschildren, categoryapi)
@@ -4272,7 +4638,7 @@ function mainapi:CreateCategory(categorysettings)
 	window.Size = UDim2.new(1, -20, 1, -20)
 	window.Position = UDim2.fromOffset(10, 10)
 	window.BackgroundColor3 = uipallet.SurfaceHigh or uipallet.Surface
-	window.BackgroundTransparency = 0.02
+	window.BackgroundTransparency = uipallet.PanelTransparency or 0.02
 	window.AutoButtonColor = false
 	window.Visible = false
 	window.Text = ''
@@ -4280,7 +4646,7 @@ function mainapi:CreateCategory(categorysettings)
 	window.ClipsDescendants = true
 
 	addCorner(window, UDim.new(0, 12))
-	addStroke(window, uipallet.Border, 1, 0.54)
+	addStroke(window, uipallet.Border, 1, 0.38)
 	local icon = Instance.new('ImageLabel')
 	icon.Name = 'Icon'
 	icon.Size = categorysettings.Size
@@ -4325,8 +4691,8 @@ function mainapi:CreateCategory(categorysettings)
 	children.BackgroundTransparency = 1
 	children.BorderSizePixel = 0
 	children.Visible = false
-	children.ScrollBarThickness = 2
-	children.ScrollBarImageTransparency = 0.62
+	children.ScrollBarThickness = 4
+	children.ScrollBarImageTransparency = 0.38
 	children.CanvasSize = UDim2.new()
 	children.Parent = window
 	local divider = Instance.new('Frame')
@@ -4354,34 +4720,53 @@ function mainapi:CreateCategory(categorysettings)
 			Index = getTableSize(mainapi.Modules),
 			ExtraText = modulesettings.ExtraText,
 			Name = modulesettings.Name,
-			Category = categorysettings.Name
+			Category = categorysettings.Name,
+			Locked = false,
+			RequiredTier = 'free'
 		}
 
 		local modulebutton = Instance.new('TextButton')
 		modulebutton.Name = modulesettings.Name
-		modulebutton.Size = UDim2.new(1, -12, 0, 44)
+		modulebutton.Size = UDim2.new(1, -14, 0, 48)
 		modulebutton.BackgroundColor3 = uipallet.SurfaceAlt
 		modulebutton.BorderSizePixel = 0
 		modulebutton.AutoButtonColor = false
-		modulebutton.Text = '            '..modulesettings.Name
+		modulebutton.Text = '              '..modulesettings.Name
 		modulebutton.TextXAlignment = Enum.TextXAlignment.Left
 		modulebutton.TextColor3 = color.Dark(uipallet.Text, 0.22)
 		modulebutton.TextSize = 14
 		modulebutton.FontFace = uipallet.Font
 		modulebutton.Parent = children
-		styleShell(modulebutton, UDim.new(0, 10), 0.66)
+		styleShell(modulebutton, UDim.new(0, 12), 0.58)
 		local moduleStroke = modulebutton:FindFirstChildOfClass('UIStroke')
 		local moduleAccent = Instance.new('Frame')
 		moduleAccent.Name = 'AccentLine'
-		moduleAccent.Size = UDim2.fromOffset(3, 24)
-		moduleAccent.Position = UDim2.fromOffset(0, 10)
+		moduleAccent.Size = UDim2.fromOffset(3, 26)
+		moduleAccent.Position = UDim2.fromOffset(0, 11)
 		moduleAccent.BackgroundColor3 = getAccentColor()
 		moduleAccent.BackgroundTransparency = 1
 		moduleAccent.BorderSizePixel = 0
 		moduleAccent.Parent = modulebutton
 		addCorner(moduleAccent, UDim.new(1, 0))
-		local moduleGlow = addGlow(modulebutton, 'ModuleGlow', 1, 58)
+		local moduleGlow = addGlow(modulebutton, 'ModuleGlow', 1, 76)
 		moduleGlow.ImageColor3 = getAccentColor()
+
+		local lockbadge = Instance.new('TextLabel')
+		lockbadge.Name = 'TierLock'
+		lockbadge.Size = UDim2.fromOffset(78, 22)
+		lockbadge.Position = UDim2.new(1, -118, 0, 13)
+		lockbadge.BackgroundColor3 = color.Light(uipallet.Main, 0.1)
+		lockbadge.BackgroundTransparency = 0.08
+		lockbadge.BorderSizePixel = 0
+		lockbadge.Text = ''
+		lockbadge.TextColor3 = uipallet.MutedText
+		lockbadge.TextSize = 10
+		lockbadge.FontFace = uipallet.FontSemiBold
+		lockbadge.Visible = false
+		lockbadge.Parent = modulebutton
+		addCorner(lockbadge, UDim.new(1, 0))
+		addStroke(lockbadge, uipallet.Border, 1, 0.48)
+
 		local gradient = Instance.new('UIGradient')
 		gradient.Rotation = 90
 		gradient.Enabled = false
@@ -4392,7 +4777,7 @@ function mainapi:CreateCategory(categorysettings)
 		addTooltip(bind, 'Click to bind')
 		bind.Name = 'Bind'
 		bind.Size = UDim2.fromOffset(20, 21)
-		bind.Position = UDim2.new(1, -36, 0, 9)
+		bind.Position = UDim2.new(1, -38, 0, 13)
 		bind.AnchorPoint = Vector2.new(1, 0)
 		bind.BackgroundColor3 = color.Light(uipallet.SurfaceAlt, 0.05)
 		bind.BackgroundTransparency = 0.2
@@ -4441,22 +4826,22 @@ function mainapi:CreateCategory(categorysettings)
 		bind.Parent = modulebutton
 		local dotsbutton = Instance.new('TextButton')
 		dotsbutton.Name = 'Dots'
-		dotsbutton.Size = UDim2.fromOffset(25, 40)
-		dotsbutton.Position = UDim2.new(1, -25, 0, 0)
+		dotsbutton.Size = UDim2.fromOffset(26, 44)
+		dotsbutton.Position = UDim2.new(1, -28, 0, 2)
 		dotsbutton.BackgroundTransparency = 1
 		dotsbutton.Text = ''
 		dotsbutton.Parent = modulebutton
 		local dots = Instance.new('ImageLabel')
 		dots.Name = 'Dots'
 		dots.Size = UDim2.fromOffset(3, 16)
-		dots.Position = UDim2.fromOffset(4, 12)
+		dots.Position = UDim2.fromOffset(7, 14)
 		dots.BackgroundTransparency = 1
 		dots.Image = getcustomasset('vape/assets/dots.png')
 		dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		dots.Parent = dotsbutton
 		modulechildren.Name = modulesettings.Name..'Children'
 		modulechildren.Size = UDim2.new(1, 0, 0, 0)
-		modulechildren.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+		modulechildren.BackgroundColor3 = color.Light(uipallet.Main, 0.01)
 		modulechildren.BorderSizePixel = 0
 		modulechildren.Visible = false
 		modulechildren.Parent = children
@@ -4477,6 +4862,39 @@ function mainapi:CreateCategory(categorysettings)
 		divider.Parent = modulebutton
 		modulesettings.Function = modulesettings.Function or function() end
 		addMaid(moduleapi)
+
+		function moduleapi:ApplyAccessState()
+			local allowed, requiredTier = accessCanUseModule(self.Category, self.Name)
+			self.Locked = not allowed
+			self.RequiredTier = requiredTier or 'free'
+			lockbadge.Text = string.upper(tostring(self.RequiredTier))
+			lockbadge.Visible = self.Locked
+			if self.Locked then
+				modulebutton.TextColor3 = color.Dark(uipallet.MutedText, 0.18)
+				modulebutton.BackgroundColor3 = color.Dark(uipallet.SurfaceAlt, 0.03)
+				modulebutton.AutoButtonColor = false
+				moduleAccent.BackgroundTransparency = 0.35
+				moduleAccent.BackgroundColor3 = uipallet.DimText
+				if moduleStroke then
+					moduleStroke.Color = uipallet.DimText
+					moduleStroke.Transparency = 0.42
+				end
+				if self.Enabled then
+					self.Locked = false
+					self:Toggle(true)
+					self.Locked = true
+				end
+			elseif not self.Enabled then
+				modulebutton.TextColor3 = color.Dark(uipallet.Text, 0.22)
+				modulebutton.BackgroundColor3 = uipallet.SurfaceAlt
+				moduleAccent.BackgroundTransparency = 1
+				if moduleStroke then
+					moduleStroke.Color = uipallet.Border
+					moduleStroke.Transparency = 0.66
+				end
+			end
+		end
+
 
 		function moduleapi:SetBind(tab, mouse)
 			if tab.Mobile then
@@ -4507,6 +4925,11 @@ function mainapi:CreateCategory(categorysettings)
 		end
 
 		function moduleapi:Toggle(multiple)
+			if self.Locked then
+				local displayTier = (shared.SilentwareAccess and shared.SilentwareAccess.DisplayNames and shared.SilentwareAccess.DisplayNames[self.RequiredTier]) or tostring(self.RequiredTier)
+				mainapi:CreateNotification('Locked module', self.Name..' requires '..tostring(displayTier)..' access.', 4, 'warning')
+				return
+			end
 			if mainapi.ThreadFix then
 				setthreadidentity(8)
 			end
@@ -4514,11 +4937,11 @@ function mainapi:CreateCategory(categorysettings)
 			divider.Visible = self.Enabled
 			gradient.Enabled = self.Enabled
 			modulebutton.TextColor3 = self.Enabled and mainapi:TextColor(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value) or ((hovered or modulechildren.Visible) and uipallet.Text or color.Dark(uipallet.Text, 0.22))
-			modulebutton.BackgroundColor3 = self.Enabled and getAccentColor() or ((hovered or modulechildren.Visible) and color.Light(uipallet.SurfaceAlt, 0.03) or uipallet.SurfaceAlt)
+			modulebutton.BackgroundColor3 = self.Enabled and getAccentColor() or ((hovered or modulechildren.Visible) and color.Light(uipallet.SurfaceAlt, 0.055) or uipallet.SurfaceAlt)
 			moduleAccent.BackgroundTransparency = self.Enabled and 0 or 1
 			moduleAccent.BackgroundColor3 = getAccentColor()
 			moduleGlow.ImageColor3 = getAccentColor()
-			tween:Tween(moduleGlow, uipallet.Tween, {ImageTransparency = self.Enabled and 0.46 or 1})
+			tween:Tween(moduleGlow, uipallet.Tween, {ImageTransparency = self.Enabled and 0.28 or 1})
 			if moduleStroke then
 				moduleStroke.Color = self.Enabled and getAccentColor() or uipallet.Border
 				moduleStroke.Transparency = self.Enabled and 0.25 or 0.66
@@ -4659,6 +5082,7 @@ function mainapi:CreateCategory(categorysettings)
 
 		moduleapi.Object = modulebutton
 		mainapi.Modules[modulesettings.Name] = moduleapi
+		moduleapi:ApplyAccessState()
 
 		local sorting = {}
 		for _, v in mainapi.Modules do
@@ -4811,7 +5235,7 @@ function mainapi:CreateOverlay(categorysettings)
 	local dots = Instance.new('ImageLabel')
 	dots.Name = 'Dots'
 	dots.Size = UDim2.fromOffset(3, 16)
-	dots.Position = UDim2.fromOffset(4, 12)
+	dots.Position = UDim2.fromOffset(7, 14)
 	dots.BackgroundTransparency = 1
 	dots.Image = getcustomasset('vape/assets/dots.png')
 	dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
@@ -4829,7 +5253,7 @@ function mainapi:CreateOverlay(categorysettings)
 	children.BackgroundColor3 = color.Dark(uipallet.Surface, 0.01)
 	children.BorderSizePixel = 0
 	children.Visible = false
-	children.ScrollBarThickness = 2
+	children.ScrollBarThickness = 4
 	children.ScrollBarImageTransparency = 0.75
 	children.CanvasSize = UDim2.new()
 	children.Parent = window
@@ -4946,7 +5370,7 @@ function mainapi:CreateCategoryList(categorysettings)
 	window.Size = UDim2.new(1, -20, 1, -20)
 	window.Position = UDim2.fromOffset(10, 10)
 	window.BackgroundColor3 = uipallet.SurfaceHigh or uipallet.Surface
-	window.BackgroundTransparency = 0.02
+	window.BackgroundTransparency = uipallet.PanelTransparency or 0.02
 	window.AutoButtonColor = false
 	window.Visible = false
 	window.Text = ''
@@ -4995,7 +5419,7 @@ function mainapi:CreateCategoryList(categorysettings)
 	children.BackgroundTransparency = 1
 	children.BorderSizePixel = 0
 	children.Visible = false
-	children.ScrollBarThickness = 2
+	children.ScrollBarThickness = 4
 	children.ScrollBarImageTransparency = 0.75
 	children.CanvasSize = UDim2.new()
 	children.Parent = window
@@ -5139,7 +5563,7 @@ function mainapi:CreateCategoryList(categorysettings)
 				local dotsbutton = Instance.new('TextButton')
 				dotsbutton.Name = 'Dots'
 				dotsbutton.Size = UDim2.fromOffset(25, 33)
-				dotsbutton.Position = UDim2.new(1, -25, 0, 0)
+				dotsbutton.Position = UDim2.new(1, -28, 0, 2)
 				dotsbutton.BackgroundTransparency = 1
 				dotsbutton.Text = ''
 				dotsbutton.Parent = object
@@ -5553,7 +5977,7 @@ function mainapi:CreateSearch()
 	children.Position = UDim2.fromOffset(0, 34)
 	children.BackgroundTransparency = 1
 	children.BorderSizePixel = 0
-	children.ScrollBarThickness = 2
+	children.ScrollBarThickness = 4
 	children.ScrollBarImageTransparency = 0.75
 	children.CanvasSize = UDim2.new()
 	children.Parent = searchbkg
@@ -5654,7 +6078,7 @@ function mainapi:CreateLegit()
 	children.Position = UDim2.fromOffset(14, 41)
 	children.BackgroundTransparency = 1
 	children.BorderSizePixel = 0
-	children.ScrollBarThickness = 2
+	children.ScrollBarThickness = 4
 	children.ScrollBarImageTransparency = 0.75
 	children.CanvasSize = UDim2.new()
 	children.Parent = window
@@ -5706,7 +6130,7 @@ function mainapi:CreateLegit()
 		local knobmain = knob:Clone()
 		knobmain.Size = UDim2.fromOffset(10, 10)
 		knobmain.Position = UDim2.fromOffset(2, 2)
-		knobmain.BackgroundColor3 = uipallet.Surface
+		knobmain.BackgroundColor3 = color.Light(uipallet.Surface, 0.06)
 		knobmain.Parent = knob
 		local dotsbutton = Instance.new('TextButton')
 		dotsbutton.Name = 'Dots'
@@ -5768,7 +6192,7 @@ function mainapi:CreateLegit()
 		settingschildren.Position = UDim2.fromOffset(0, 41)
 		settingschildren.BackgroundColor3 = uipallet.Surface
 		settingschildren.BorderSizePixel = 0
-		settingschildren.ScrollBarThickness = 2
+		settingschildren.ScrollBarThickness = 4
 		settingschildren.ScrollBarImageTransparency = 0.75
 		settingschildren.CanvasSize = UDim2.new()
 		settingschildren.Parent = settingspane
@@ -5985,7 +6409,7 @@ function mainapi:CreateNotification(title, text, duration, type)
 		titlelabel.TextXAlignment = Enum.TextXAlignment.Left
 		titlelabel.TextYAlignment = Enum.TextYAlignment.Top
 		titlelabel.TextColor3 = uipallet.Text
-		titlelabel.TextSize = 14
+		titlelabel.TextSize = 13
 		titlelabel.RichText = true
 		titlelabel.FontFace = uipallet.FontSemiBold
 		titlelabel.Parent = notification
@@ -6807,6 +7231,229 @@ modules:CreateToggle({
 			mainapi.Libraries.entity.refresh()
 		end
 	end
+})
+
+--[[
+	Theme Settings
+]]
+
+
+local function createThemePreviewCard(parent, themeName, preset, layoutOrder)
+	if not parent or not parent.Children then return end
+	local card = Instance.new('TextButton')
+	card.Name = themeName..'ThemeCard'
+	card.Size = UDim2.new(1, 0, 0, 72)
+	card.BackgroundTransparency = 1
+	card.AutoButtonColor = false
+	card.Text = ''
+	card.LayoutOrder = layoutOrder or 0
+	card.Parent = parent.Children
+	addTooltip(card, tostring(preset and preset.Description or 'Premium Silentware theme'))
+	local shell = Instance.new('Frame')
+	shell.Name = 'CardSurface'
+	shell.Size = UDim2.new(1, -20, 1, -8)
+	shell.Position = UDim2.fromOffset(10, 4)
+	shell.BackgroundColor3 = preset.SurfaceAlt or uipallet.SurfaceAlt
+	shell.BackgroundTransparency = 0.04
+	shell.BorderSizePixel = 0
+	shell.Parent = card
+	addCorner(shell, UDim.new(0, 12))
+	addStroke(shell, preset.Border or uipallet.Border, 1, 0.34)
+	local swatch = Instance.new('Frame')
+	swatch.Name = 'AccentSwatch'
+	swatch.Size = UDim2.fromOffset(7, 46)
+	swatch.Position = UDim2.fromOffset(11, 9)
+	swatch.BackgroundColor3 = preset.Accent or uipallet.Accent
+	swatch.BorderSizePixel = 0
+	swatch.Parent = shell
+	addCorner(swatch, UDim.new(1, 0))
+	local swatchGlow = addGlow(swatch, 'SwatchGlow', 0.46, 48)
+	swatchGlow.ImageColor3 = preset.AccentGlow or preset.Accent or uipallet.Accent
+	local title = Instance.new('TextLabel')
+	title.Name = 'Title'
+	title.Size = UDim2.new(1, -100, 0, 20)
+	title.Position = UDim2.fromOffset(28, 11)
+	title.BackgroundTransparency = 1
+	title.Text = themeName
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = preset.Text or uipallet.Text
+	title.TextSize = 14
+	title.FontFace = uipallet.FontSemiBold
+	title.Parent = shell
+	local desc = Instance.new('TextLabel')
+	desc.Name = 'Description'
+	desc.Size = UDim2.new(1, -110, 0, 28)
+	desc.Position = UDim2.fromOffset(28, 31)
+	desc.BackgroundTransparency = 1
+	desc.Text = tostring(preset.Description or '')
+	desc.TextXAlignment = Enum.TextXAlignment.Left
+	desc.TextYAlignment = Enum.TextYAlignment.Top
+	desc.TextWrapped = true
+	desc.TextColor3 = preset.MutedText or uipallet.MutedText
+	desc.TextSize = 10
+	desc.FontFace = uipallet.Font
+	desc.Parent = shell
+	local miniA = Instance.new('Frame')
+	miniA.Name = 'MiniSurface'
+	miniA.Size = UDim2.fromOffset(42, 18)
+	miniA.Position = UDim2.new(1, -57, 0, 13)
+	miniA.BackgroundColor3 = preset.SurfaceHigh or uipallet.SurfaceHigh
+	miniA.BorderSizePixel = 0
+	miniA.Parent = shell
+	addCorner(miniA, UDim.new(0, 6))
+	local miniB = Instance.new('Frame')
+	miniB.Name = 'MiniAccent'
+	miniB.Size = UDim2.fromOffset(42, 6)
+	miniB.Position = UDim2.new(1, -57, 0, 39)
+	miniB.BackgroundColor3 = preset.Accent or uipallet.Accent
+	miniB.BorderSizePixel = 0
+	miniB.Parent = shell
+	addCorner(miniB, UDim.new(1, 0))
+	card.MouseEnter:Connect(function()
+		tween:Tween(shell, uipallet.Tween, {BackgroundTransparency = 0})
+		tween:Tween(swatchGlow, uipallet.Tween, {ImageTransparency = 0.2})
+	end)
+	card.MouseLeave:Connect(function()
+		tween:Tween(shell, uipallet.Tween, {BackgroundTransparency = 0.04})
+		tween:Tween(swatchGlow, uipallet.Tween, {ImageTransparency = 0.46})
+	end)
+	card.MouseButton1Click:Connect(function()
+		mainapi:ApplyThemePreset(themeName)
+	end)
+	return card
+end
+local themepane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Theme Settings'})
+themepane:CreateDropdown({
+	Name = 'Theme preset',
+	List = themePresetNames,
+	Function = function(val)
+		mainapi:ApplyThemePreset(val)
+	end,
+	Tooltip = 'Choose a premade premium Silentware theme.'
+})
+for index, themeName in themePresetNames do
+	createThemePreviewCard(themepane, themeName, themePresets[themeName], 20 + index)
+end
+
+--[[
+	Access / Admin Settings
+]]
+
+local accesspane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Access & Admin'})
+local tierText = accesspane:CreateButton({
+	Name = 'Current tier: '..tostring((access.DisplayNames and access.DisplayNames[access.Tier]) or access.Tier or 'Free'),
+	Function = function()
+		mainapi:CreateNotification('Access tier', 'Current tier: '..tostring((shared.SilentwareAccess and shared.SilentwareAccess.Tier) or 'free'), 4)
+	end,
+	Tooltip = 'Shows your active Silentware access tier.'
+})
+local keybox = accesspane:CreateTextBox({
+	Name = 'Access key',
+	Placeholder = 'Paste standard / premium / beta key',
+	Tooltip = 'Stored locally in vape/SilentwareKey.txt when checked.'
+})
+accesspane:CreateButton({
+	Name = 'Check access key',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
+			local ok, err = pcall(function()
+				currentAccess:CheckKey(keybox.Value)
+			end)
+			if ok then
+				mainapi.Access = currentAccess
+				if mainapi.AccessTierPill then mainapi.AccessTierPill.Text = tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier) end
+				mainapi:RefreshAccessLocks()
+				mainapi:CreateNotification('Access updated', 'Tier: '..tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier), 5)
+			else
+				mainapi:CreateNotification('Access failed', tostring(err), 6, 'alert')
+			end
+		else
+			mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
+		end
+	end,
+	Tooltip = 'Checks the configured access website/file and unlocks your tier if valid.'
+})
+local adminkey = accesspane:CreateTextBox({
+	Name = 'Admin key',
+	Placeholder = 'Paste admin key',
+	Tooltip = 'Admin actions require a configured backend endpoint. Do not hardcode real admin keys in the client.'
+})
+local targetkey = accesspane:CreateTextBox({
+	Name = 'Target key/user',
+	Placeholder = 'Key or Roblox user id',
+	Tooltip = 'Key or user id to grant/revoke from the backend.'
+})
+local targettier = accesspane:CreateDropdown({
+	Name = 'Target tier',
+	List = {'free', 'standard', 'premium', 'beta'},
+	Tooltip = 'Tier to grant through the admin backend.'
+})
+local adminnote = accesspane:CreateTextBox({
+	Name = 'Admin note',
+	Placeholder = 'Optional note / reason',
+	Tooltip = 'Sent to the admin endpoint with grant/revoke requests.'
+})
+accesspane:CreateButton({
+	Name = 'Unlock admin panel',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
+			local ok, msg = currentAccess:AdminLogin(adminkey.Value)
+			mainapi:CreateNotification(ok and 'Admin unlocked' or 'Admin locked', tostring(msg), 6, ok and 'info' or 'warning')
+		else
+			mainapi:CreateNotification('Admin unavailable', 'The access library did not load.', 6, 'alert')
+		end
+	end,
+	Tooltip = 'Verifies the admin key against the configured admin endpoint.'
+})
+accesspane:CreateButton({
+	Name = 'Grant target tier',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, msg = false, 'Access library unavailable.'
+		if type(currentAccess) == 'table' and type(currentAccess.GrantKey) == 'function' then
+			ok, msg = currentAccess:GrantKey(targetkey.Value, targettier.Value, adminnote.Value)
+		end
+		mainapi:CreateNotification(ok and 'Whitelist granted' or 'Grant failed', tostring(msg), 7, ok and 'info' or 'alert')
+	end,
+	Tooltip = 'Sends a grant request to your admin backend.'
+})
+accesspane:CreateButton({
+	Name = 'Revoke target access',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, msg = false, 'Access library unavailable.'
+		if type(currentAccess) == 'table' and type(currentAccess.RevokeKey) == 'function' then
+			ok, msg = currentAccess:RevokeKey(targetkey.Value, adminnote.Value)
+		end
+		mainapi:CreateNotification(ok and 'Whitelist revoked' or 'Revoke failed', tostring(msg), 7, ok and 'info' or 'alert')
+	end,
+	Tooltip = 'Sends a revoke request to your admin backend.'
+})
+accesspane:CreateButton({
+	Name = 'Set user tier',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, msg = false, 'Access library unavailable.'
+		if type(currentAccess) == 'table' and type(currentAccess.SetUserTier) == 'function' then
+			ok, msg = currentAccess:SetUserTier(targetkey.Value, targettier.Value, adminnote.Value)
+		end
+		mainapi:CreateNotification(ok and 'User tier updated' or 'User tier failed', tostring(msg), 7, ok and 'info' or 'alert')
+	end,
+	Tooltip = 'Sends a Roblox user-id tier update to your admin backend.'
+})
+accesspane:CreateButton({
+	Name = 'Send test webhook',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, msg = false, 'No webhook configured.'
+		if type(currentAccess) == 'table' and type(currentAccess.SendExecutionWebhook) == 'function' then
+			ok, msg = currentAccess:SendExecutionWebhook('manual_test')
+		end
+		mainapi:CreateNotification(ok and 'Webhook sent' or 'Webhook failed', tostring(msg), 6, ok and 'info' or 'warning')
+	end,
+	Tooltip = 'Sends a Discord webhook test if configured. Keep the URL server-side when possible.'
 })
 
 --[[
