@@ -2090,18 +2090,18 @@ run(function()
 end)
 
 run(function() 
-	local VapePrivateDetector = {Enabled = false}
+	local SilentwarePrivateDetector = {Enabled = false}
 	local VPLeave = {Enabled = false}
 	local alreadydetected = {}
-	VapePrivateDetector = vape.Categories.Blatant:CreateModule({
-		Name = "VapePrivateDetector",
+	SilentwarePrivateDetector = vape.Categories.Blatant:CreateModule({
+		Name = "SilentwarePrivateDetector",
 		Function = function(callback)
 			if callback then
 				task.spawn(function()
 					if not shared.vapewhitelist.loaded then 
-						repeat task.wait() until shared.vapewhitelist.loaded or not VapePrivateDetector.Enabled
+						repeat task.wait() until shared.vapewhitelist.loaded or not SilentwarePrivateDetector.Enabled
 					end
-					if not VapePrivateDetector.Enabled then 
+					if not SilentwarePrivateDetector.Enabled then
 						return 
 					end
 					for i,v in pairs(playersService:GetPlayers()) do
@@ -2109,7 +2109,7 @@ run(function()
 							local rank = shared.vapewhitelist:get(v)
 							if rank > 0 and not table.find(alreadydetected, v) then
 								local rankstring = rank == 1 and "Private Member" or rank > 1 and "Owner"
-								warningNotification("VapePrivateDetector", "Vape "..rankstring.." Detected! | "..v.DisplayName, 120)
+								warningNotification("SilentwarePrivateDetector", "Silentware "..rankstring.." Detected! | "..v.DisplayName, 120)
 								table.insert(alreadydetected, v)
 								if VPLeave.Enabled then
 									local newserver = nil
@@ -2119,11 +2119,11 @@ run(function()
 							end
 						end
 					end
-					VapePrivateDetector:Clean(playersService.PlayerAdded:Connect(function(v)
+					SilentwarePrivateDetector:Clean(playersService.PlayerAdded:Connect(function(v)
 						local rank = shared.vapewhitelist:get(v)
 						if rank > 0 and not table.find(alreadydetected, v) then
 							local rankstring = rank == 1 and "Private Member" or rank > 1 and "Owner"
-							warningNotification("VapePrivateDetector", "Vape "..rankstring.." Detected! | "..v.DisplayName, 120)
+							warningNotification("SilentwarePrivateDetector", "Silentware "..rankstring.." Detected! | "..v.DisplayName, 120)
 							table.insert(alreadydetected, v)
 							if VPLeave.Enabled then
 								local newserver = nil
@@ -2136,7 +2136,7 @@ run(function()
 			end
 		end
 	})
-	VPLeave = VapePrivateDetector:CreateToggle({
+	VPLeave = SilentwarePrivateDetector:CreateToggle({
 		Name = "ServerHop",
 		Tooltip = "switches servers on detection.",
 		Function = function() end
@@ -2145,6 +2145,7 @@ run(function()
 		repeat task.wait() until shared.vapewhitelist.loaded 
 		if shared.vapewhitelist:get(lplr) ~= 0 then 
 			pcall(GuiLibrary.RemoveObject, "VapePrivateDetectorOptionsButton")
+			pcall(GuiLibrary.RemoveObject, "SilentwarePrivateDetectorOptionsButton")
 		end
 	end)--]]
 end)
