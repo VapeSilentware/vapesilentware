@@ -1,0 +1,23 @@
+{
+  "config": {
+    "AllowFreeFallback": true,
+    "CheckEndpoint": "",
+    "AdminEndpoint": "",
+    "ExecutionWebhook": "",
+    "defaultModuleTiers": {
+      "Combat": "standard",
+      "Blatant": "premium",
+      "Render": "free",
+      "Utility": "free",
+      "World": "standard",
+      "Misc": "free",
+      "Inventory": "standard",
+      "Minigames": "standard",
+      "Legit": "free"
+    },
+    "moduleOverrides": {}
+  },
+  "keys": {},
+  "users": {},
+  "revoked": {}
+}
