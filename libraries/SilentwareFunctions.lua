@@ -1,4 +1,4 @@
-﻿local SWFunctions = {}
+local SWFunctions = {}
 SWFunctions.Connections = {}
 
 SWFunctions.GlobalisedObjects = {}

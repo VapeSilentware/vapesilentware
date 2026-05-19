@@ -1,4 +1,4 @@
-﻿local isNew = false
+local isNew = false
 if (not isfolder('mspaint')) then makefolder('mspaint'); isNew = true end
 if (not isfolder('mspaint/doors')) then makefolder('mspaint/doors'); isNew = true end
 if (not isfolder('mspaint/doors/settings')) then makefolder('mspaint/doors/settings'); isNew = true end
