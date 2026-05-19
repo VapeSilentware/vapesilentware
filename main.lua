@@ -24,8 +24,17 @@ getgenv().run = function(func)
 end
 
 local vape
+local baseLoadstring = loadstring
+pcall(function()
+	if type(getgenv) == "function" then
+		local genv = getgenv()
+		if type(genv) == "table" and type(genv.loadstring) == "function" then
+			baseLoadstring = genv.loadstring
+		end
+	end
+end)
 local loadstring = function(...)
-	local res, err = loadstring(...)
+	local res, err = baseLoadstring(...)
 	if err and vape then
 		vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
 	end
@@ -80,6 +89,8 @@ local function finishLoading()
 		vape:Clean(playersService.LocalPlayer.OnTeleport:Connect(function()
 			if (not teleportedServers) and (not shared.VapeIndependent) then
 				teleportedServers = true
+				local repo = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
+				local branch = tostring(shared.CustomCommit or shared.SilentwareBranch or "main")
 				local teleportScript = [[
 					repeat task.wait() until game:IsLoaded()
 					if getgenv and not getgenv().shared then shared.CheatEngineMode = true; getgenv().shared = {}; end
@@ -89,10 +100,10 @@ local function finishLoading()
 						if isfile('vape/NewMainScript.lua') then
 							loadstring(readfile("vape/NewMainScript.lua"))()
 						else
-							loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeSilentware/SWRewrite/main/NewMainScript.lua", true))()
+							loadstring(game:HttpGet("https://raw.githubusercontent.com/]]..repo..[[/]]..branch..[[/NewMainScript.lua", true))()
 						end
 					else
-						loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeSilentware/SWRewrite/main/NewMainScript.lua", true))()
+						loadstring(game:HttpGet("https://raw.githubusercontent.com/]]..repo..[[/]]..branch..[[/NewMainScript.lua", true))()
 					end
 				]]
 				for _, v in pairs(savingTable) do
@@ -111,6 +122,12 @@ local function finishLoading()
 
 	if isInkGame or not shared.vapereload then
 		if not vape.Categories then return end
+		if type(vape.Keybind) ~= "table" or #vape.Keybind == 0 then
+			vape.Keybind = {'RightShift'}
+			pcall(function()
+				vape.Categories.Main.Options.Bind:SetBind(vape.Keybind)
+			end)
+		end
 		if vape.Categories.Main.Options['GUI bind indicator'].Enabled then
 			vape:CreateNotification('Finished Loading', vape.VapeButton and 'Press the button in the top right to open GUI' or 'Press '..table.concat(vape.Keybind, ' + '):upper()..' to open GUI', 5)
 		end
@@ -122,7 +139,24 @@ if not isfolder('vape/assets') then
 	makefolder('vape/assets')
 end
 
-local SWFunctions = loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeSilentware/SWRewrite/main/libraries/SilentwareFunctions.lua", true))()
+local swRepo = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
+local swBranch = tostring(shared.CustomCommit or shared.SilentwareBranch or "main")
+local function fetchSilentwareFile(path)
+	local repos = {swRepo, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
+	local branches = {swBranch, "main"}
+	for _, branch in ipairs(branches) do
+		for _, repo in ipairs(repos) do
+			local suc, res = pcall(function()
+				return game:HttpGet("https://raw.githubusercontent.com/"..repo.."/"..branch.."/"..path, true)
+			end)
+			if suc and res and res ~= "404: Not Found" then
+				return res
+			end
+		end
+	end
+	error("Failed to fetch "..tostring(path))
+end
+local SWFunctions = loadstring(fetchSilentwareFile("libraries/SilentwareFunctions.lua"))()
 --pload('libraries/SilentwareFunctions.lua', true, true)
 SWFunctions.GlobaliseObject("SilentwareFunctions", SWFunctions)
 SWFunctions.GlobaliseObject("SWFunctions", SWFunctions)

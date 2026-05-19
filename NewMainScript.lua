@@ -29,16 +29,8 @@ for _, folder in {'vape', 'vape/games', 'vape/profiles', 'vape/assets', 'vape/li
 	end
 end
 
-if not shared.VapeDeveloper then
-	local _, subbed = pcall(function()
-		return game:HttpGet('https://github.com/VapeSilentware/SWRewrite')
-	end)
-	local commit = subbed:find('currentOid')
-	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
-	commit = commit and #commit == 40 and commit or 'main'
-	if commit == 'main' or (isfile('vape/profiles/commit.txt') and readfile('vape/profiles/commit.txt') or '') ~= commit then end
-	writefile('vape/profiles/commit.txt', commit)
-end
+shared.SilentwareRepo = shared.SilentwareRepo or "VapeSilentware/vapesilentware"
+shared.SilentwareBranch = shared.SilentwareBranch or "main"
 
 task.spawn(function()
     pcall(function()
@@ -220,10 +212,7 @@ local function are_installed_1()
     if isfile(baseDirectory..'libraries/profilesinstalled5.txt') then return true else return false end
 end
 if not are_installed_1() then pcall(function() install_profiles(1) end) end
-local commit = "main"
-writefile(baseDirectory.."commithash2.txt", commit)
-commit = '070e96570036b2836b10f3581c88bd452f722c26'
-commit = shared.CustomCommit and tostring(shared.CustomCommit) or commit
+local commit = tostring(shared.CustomCommit or shared.SilentwareBranch or "main")
 shared.SILENTWARE_SCRIPT_TYPE = "BEDWARS_REWRITE_OLD"
 writefile(baseDirectory.."commithash2.txt", commit)
 pcall(function()
@@ -241,8 +230,23 @@ local function vapeGithubRequest(scripturl, isImportant)
     end
     local suc, res
     if commit == nil then commit = "main" end
-    local url = "https://raw.githubusercontent.com/VapeSilentware/SWRewrite/"
-    suc, res = pcall(function() return game:HttpGet(url..commit.."/"..scripturl, true) end)
+    local branches = {tostring(commit), "main"}
+    local repoPrimary = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
+    local repos = {repoPrimary, "VapeSilentware/vapesilentware", "VapeSilentware/SWRewrite"}
+    for _, branch in ipairs(branches) do
+        local found = false
+        for _, repo in ipairs(repos) do
+            local url = "https://raw.githubusercontent.com/"..repo.."/"..branch.."/"..scripturl
+            suc, res = pcall(function() return game:HttpGet(url, true) end)
+            if suc and res and res ~= "404: Not Found" then
+                found = true
+                break
+            end
+        end
+        if found then
+            break
+        end
+    end
     if not suc or res == "404: Not Found" then
         if isImportant then
             game:GetService('StarterGui'):SetCore('SendNotification', {

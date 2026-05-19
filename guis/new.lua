@@ -5584,7 +5584,7 @@ function mainapi:Load(skipgui, profile)
 		end
 
 		if not skipgui then
-			self.Keybind = guidata.Keybind
+			self.Keybind = (type(guidata.Keybind) == 'table' and #guidata.Keybind > 0) and guidata.Keybind or {'RightShift'}
 			for i, v in guidata.Categories do
 				local object = self.Categories[i]
 				if not object then continue end
