@@ -182,16 +182,26 @@ local function install_profiles(num)
         return
     end
     task.spawn(function()
+        local httpService = game:GetService("HttpService")
         local res1
         if num == 1 then
             res1 = "https://api.github.com/repos/"..repoOwner.."/contents/Rewrite"
         end
-        res = game:HttpGet(res1, true)
-        if res ~= '404: Not Found' then 
-            for i,v in next, game:GetService("HttpService"):JSONDecode(res) do 
-                if type(v) == 'table' and v.name then 
-                    table.insert(guiprofiles, v.name) 
+        local reqOk, apiRes = pcall(function()
+            return game:HttpGet(res1, true)
+        end)
+        if reqOk and apiRes ~= '404: Not Found' then
+            local decodeOk, decoded = pcall(function()
+                return httpService:JSONDecode(apiRes)
+            end)
+            if decodeOk and type(decoded) == "table" then
+                for i, v in next, decoded do
+                    if type(v) == 'table' and v.name then
+                        table.insert(guiprofiles, v.name)
+                    end
                 end
+            elseif shared.VoidDev then
+                warn("install_profiles JSON decode failed", tostring(decoded))
             end
         end
         profilesfetched = true
