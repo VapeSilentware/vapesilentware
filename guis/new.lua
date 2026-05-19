@@ -1,9 +1,9 @@
 local mainapi = {
 	Categories = {},
 	GUIColor = {
-		Hue = 0.43,
-		Sat = 0.72,
-		Value = 0.78
+		Hue = 0.405,
+		Sat = 0.68,
+		Value = 0.82
 	},
 	HeldKeybinds = {},
 	Keybind = {'RightShift'},
@@ -60,9 +60,9 @@ local uipallet = {
 	SurfaceAlt = Color3.fromRGB(16, 23, 20),
 	SurfaceHigh = Color3.fromRGB(22, 31, 27),
 	Border = Color3.fromRGB(49, 70, 61),
-	Accent = Color3.fromRGB(56, 189, 129),
-	AccentSoft = Color3.fromRGB(39, 130, 92),
-	Success = Color3.fromRGB(56, 189, 129),
+	Accent = Color3.fromRGB(62, 211, 139),
+	AccentSoft = Color3.fromRGB(35, 152, 96),
+	Success = Color3.fromRGB(62, 211, 139),
 	Warning = Color3.fromRGB(234, 171, 75),
 	Danger = Color3.fromRGB(235, 87, 103),
 	Text = Color3.fromRGB(242, 250, 246),
@@ -211,12 +211,40 @@ local function addGlow(parent, name, transparency, sizePad)
 	glow.BackgroundTransparency = 1
 	glow.Image = getcustomasset('vape/assets/blur.png')
 	glow.ImageColor3 = uipallet.Accent
-	glow.ImageTransparency = transparency == nil and 0.72 or transparency
+	glow.ImageTransparency = transparency == nil and 0.62 or transparency
 	glow.ScaleType = Enum.ScaleType.Slice
 	glow.SliceCenter = Rect.new(52, 31, 261, 502)
 	glow.ZIndex = math.max((parent.ZIndex or 1) - 1, 0)
 	glow.Parent = parent
 	return glow
+end
+
+local function addShadow(parent, name, transparency, sizePad, offsetY)
+	local shadow = Instance.new('ImageLabel')
+	shadow.Name = name or 'DropShadow'
+	shadow.Size = UDim2.new(1, sizePad or 76, 1, sizePad or 76)
+	shadow.Position = UDim2.fromOffset(-((sizePad or 76) / 2), -((sizePad or 76) / 2) + (offsetY or 8))
+	shadow.BackgroundTransparency = 1
+	shadow.Image = getcustomasset('vape/assets/blur.png')
+	shadow.ImageColor3 = Color3.new(0, 0, 0)
+	shadow.ImageTransparency = transparency == nil and 0.42 or transparency
+	shadow.ScaleType = Enum.ScaleType.Slice
+	shadow.SliceCenter = Rect.new(52, 31, 261, 502)
+	shadow.ZIndex = math.max((parent.ZIndex or 1) - 2, 0)
+	shadow.Parent = parent
+	return shadow
+end
+
+local function configureScroll(frame, barThickness, barTransparency)
+	if not frame or not frame:IsA('ScrollingFrame') then return end
+	frame.Active = true
+	frame.ClipsDescendants = true
+	frame.ScrollingDirection = Enum.ScrollingDirection.Y
+	frame.CanvasSize = UDim2.fromOffset(0, 0)
+	pcall(function() frame.AutomaticCanvasSize = Enum.AutomaticSize.Y end)
+	frame.ScrollBarThickness = barThickness or 4
+	frame.ScrollBarImageTransparency = barTransparency == nil and 0.45 or barTransparency
+	frame.ScrollBarImageColor3 = uipallet.Accent
 end
 
 local function makePremiumWindowFrame(parent, name, size, position)
@@ -244,7 +272,7 @@ local function animatePremiumOpen()
 	shell.Position = UDim2.fromScale(0.5, 0.515)
 	shell.BackgroundTransparency = 0.18
 	if mainapi.PremiumGlow then
-		mainapi.PremiumGlow.ImageTransparency = 0.88
+		mainapi.PremiumGlow.ImageTransparency = 0.82
 	end
 	if shellscale then
 		tween:Tween(shellscale, uipallet.OpenTween, {Scale = 1})
@@ -255,7 +283,7 @@ local function animatePremiumOpen()
 	})
 	if mainapi.PremiumGlow then
 		tween:Tween(mainapi.PremiumGlow, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-			ImageTransparency = 0.58
+			ImageTransparency = 0.42
 		})
 	end
 end
@@ -582,7 +610,7 @@ do
 			tab[obj]:Cancel()
 		end
 
-		if obj.Parent and obj.Visible then
+		if obj.Parent and (obj.Visible == nil or obj.Visible) then
 			tab[obj] = tweenService:Create(obj, tweeninfo, goal)
 			tab[obj].Completed:Once(function()
 				if tab then
@@ -2744,11 +2772,12 @@ function mainapi:CreateGUI()
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.ClipsDescendants = false
 	mainapi.PremiumShell = shell
-	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.58, 92)
+	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', 0.34, 118, 10)
+	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.42, 102)
 	mainapi.PremiumGlow.ImageColor3 = uipallet.Accent
 	local shellscale = Instance.new('UIScale')
 	shellscale.Name = 'OpenScale'
-	shellscale.Scale = 1
+	shellscale.Scale = 0.965
 	shellscale.Parent = shell
 	mainapi.PremiumScale = shellscale
 
@@ -2786,15 +2815,25 @@ function mainapi:CreateGUI()
 	logov4.Parent = logo
 	addCorner(logov4, UDim.new(1, 0))
 	addStroke(logov4, uipallet.Accent, 1, 0.35)
-	local logoGlow = addGlow(logov4, 'LogoGlow', 0.68, 38)
+	local logoGlow = addGlow(logov4, 'LogoGlow', 0.46, 44)
 	logoGlow.ImageColor3 = uipallet.Accent
+	task.spawn(function()
+		repeat
+			tween:Tween(logov4, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.28, Size = UDim2.fromOffset(10, 10), Position = UDim2.fromOffset(109, 1)})
+			tween:Tween(logoGlow, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.32})
+			task.wait(0.62)
+			tween:Tween(logov4, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0, Size = UDim2.fromOffset(8, 8), Position = UDim2.fromOffset(110, 2)})
+			tween:Tween(logoGlow, TweenInfo.new(0.62, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.52})
+			task.wait(0.62)
+		until mainapi.Loaded == nil or not logov4.Parent
+	end)
 
 	local subtitle = Instance.new('TextLabel')
 	subtitle.Name = 'Subtitle'
 	subtitle.Size = UDim2.fromOffset(240, 18)
 	subtitle.Position = UDim2.fromOffset(22, 38)
 	subtitle.BackgroundTransparency = 1
-	subtitle.Text = 'premium control center'
+	subtitle.Text = 'v1.0'
 	subtitle.TextXAlignment = Enum.TextXAlignment.Left
 	subtitle.TextColor3 = uipallet.MutedText
 	subtitle.TextSize = 11
@@ -2833,9 +2872,11 @@ function mainapi:CreateGUI()
 	sidebar.BackgroundColor3 = color.Light(uipallet.Main, 0.015)
 	sidebar.BackgroundTransparency = 0.1
 	sidebar.BorderSizePixel = 0
+	sidebar.ClipsDescendants = false
 	sidebar.Parent = shell
 	addCorner(sidebar, UDim.new(0, 14))
-	addStroke(sidebar, uipallet.Border, 1, 0.62)
+	addStroke(sidebar, uipallet.Border, 1, 0.56)
+	addShadow(sidebar, 'SidebarShadow', 0.64, 50, 5)
 
 	local content = Instance.new('Frame')
 	content.Name = 'Content'
@@ -2847,7 +2888,8 @@ function mainapi:CreateGUI()
 	content.ClipsDescendants = true
 	content.Parent = shell
 	addCorner(content, UDim.new(0, 14))
-	addStroke(content, uipallet.Border, 1, 0.58)
+	addStroke(content, uipallet.Border, 1, 0.52)
+	addShadow(content, 'ContentShadow', 0.66, 48, 5)
 	mainapi.PremiumContent = content
 	mainapi.PremiumSidebar = sidebar
 
@@ -2857,6 +2899,7 @@ function mainapi:CreateGUI()
 	window.Position = UDim2.fromOffset(9, 9)
 	window.BackgroundTransparency = 1
 	window.AutoButtonColor = false
+	window.ClipsDescendants = true
 	window.Text = ''
 	window.Parent = sidebar
 
@@ -2866,10 +2909,8 @@ function mainapi:CreateGUI()
 	children.Position = UDim2.fromOffset(0, 6)
 	children.BackgroundTransparency = 1
 	children.BorderSizePixel = 0
-	children.ScrollBarThickness = 2
-	children.ScrollBarImageTransparency = 0.78
-	children.CanvasSize = UDim2.new()
 	children.Parent = window
+	configureScroll(children, 4, 0.38)
 	local windowlist = Instance.new('UIListLayout')
 	windowlist.SortOrder = Enum.SortOrder.LayoutOrder
 	windowlist.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -2907,8 +2948,9 @@ function mainapi:CreateGUI()
 	settingspane.Visible = false
 	settingspane.Text = ''
 	settingspane.Parent = shell
-	settingspane.ZIndex = 12
+	settingspane.ZIndex = 30
 	addCorner(settingspane, UDim.new(0, 18))
+	addShadow(settingspane, 'SettingsShadow', 0.48, 86, 6)
 	local title = Instance.new('TextLabel')
 	title.Name = 'Title'
 	title.Size = UDim2.new(1, -36, 0, 20)
@@ -2944,18 +2986,25 @@ function mainapi:CreateGUI()
 	settingsversion.Parent = settingspane
 	addCorner(settingspane, UDim.new(0, 10))
 	addStroke(settingspane, uipallet.Border, 1, 0.35)
-	local settingschildren = Instance.new('Frame')
+	local settingschildren = Instance.new('ScrollingFrame')
 	settingschildren.Name = 'Children'
-	settingschildren.Size = UDim2.new(1, 0, 1, -57)
-	settingschildren.Position = UDim2.fromOffset(0, 41)
+	settingschildren.Size = UDim2.new(1, -20, 1, -68)
+	settingschildren.Position = UDim2.fromOffset(10, 45)
 	settingschildren.BackgroundColor3 = uipallet.Surface
+	settingschildren.BackgroundTransparency = 1
 	settingschildren.BorderSizePixel = 0
 	settingschildren.Parent = settingspane
+	configureScroll(settingschildren, 4, 0.42)
 	local settingswindowlist = Instance.new('UIListLayout')
 	settingswindowlist.SortOrder = Enum.SortOrder.LayoutOrder
 	settingswindowlist.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	settingswindowlist.Parent = settingschildren
 	styleListLayout(settingswindowlist, 4)
+	settingswindowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+		if settingschildren:IsA('ScrollingFrame') then
+			settingschildren.CanvasSize = UDim2.fromOffset(0, settingswindowlist.AbsoluteContentSize.Y / scale.Scale + 12)
+		end
+	end)
 	categoryapi.Object = window
 
 	function categoryapi:CreateBind()
@@ -3074,6 +3123,8 @@ function mainapi:CreateGUI()
 		accentline.BorderSizePixel = 0
 		accentline.Parent = button
 		addCorner(accentline, UDim.new(1, 0))
+		local activeGlow = addGlow(button, 'ActiveGlow', 1, 58)
+		activeGlow.ImageColor3 = getAccentColor()
 		local icon
 		if categorysettings.Icon then
 			icon = Instance.new('ImageLabel')
@@ -3120,6 +3171,8 @@ function mainapi:CreateGUI()
 			button.BackgroundColor3 = enabled and color.Light(uipallet.SurfaceAlt, 0.055) or uipallet.SurfaceAlt
 			accentline.BackgroundTransparency = enabled and 0 or 1
 			accentline.BackgroundColor3 = getAccentColor()
+			activeGlow.ImageColor3 = getAccentColor()
+			tween:Tween(activeGlow, uipallet.Tween, {ImageTransparency = enabled and 0.58 or 1})
 			if buttonStroke then
 				buttonStroke.Color = enabled and getAccentColor() or uipallet.Border
 				buttonStroke.Transparency = enabled and 0.32 or 0.64
@@ -3430,7 +3483,8 @@ function mainapi:CreateGUI()
 		settingspane.AutoButtonColor = false
 		settingspane.Visible = false
 		settingspane.Text = ''
-		settingspane.Parent = window
+		settingspane.Parent = shell
+		settingspane.ZIndex = 32
 		local title = Instance.new('TextLabel')
 		title.Name = 'Title'
 		title.Size = UDim2.new(1, -36, 0, 20)
@@ -3453,13 +3507,15 @@ function mainapi:CreateGUI()
 		back.Parent = settingspane
 		addCorner(settingspane)
 		addStroke(settingspane, uipallet.Border, 1, 0.42)
-		local settingschildren = Instance.new('Frame')
+		local settingschildren = Instance.new('ScrollingFrame')
 		settingschildren.Name = 'Children'
-		settingschildren.Size = UDim2.new(1, 0, 1, -57)
-		settingschildren.Position = UDim2.fromOffset(0, 41)
+		settingschildren.Size = UDim2.new(1, -20, 1, -58)
+		settingschildren.Position = UDim2.fromOffset(10, 46)
 		settingschildren.BackgroundColor3 = uipallet.Surface
+		settingschildren.BackgroundTransparency = 1
 		settingschildren.BorderSizePixel = 0
 		settingschildren.Parent = settingspane
+		configureScroll(settingschildren, 4, 0.42)
 		local divider = Instance.new('Frame')
 		divider.Name = 'Divider'
 		divider.Size = UDim2.new(1, 0, 0, 1)
@@ -3472,6 +3528,11 @@ function mainapi:CreateGUI()
 		settingswindowlist.HorizontalAlignment = Enum.HorizontalAlignment.Center
 		settingswindowlist.Parent = settingschildren
 		styleListLayout(settingswindowlist, 4)
+		settingswindowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+			if settingschildren:IsA('ScrollingFrame') then
+				settingschildren.CanvasSize = UDim2.fromOffset(0, settingswindowlist.AbsoluteContentSize.Y / scale.Scale + 12)
+			end
+		end)
 
 		for i, v in components do
 			optionapi['Create'..i] = function(_, settings)
@@ -3506,7 +3567,7 @@ function mainapi:CreateGUI()
 			if mainapi.ThreadFix then
 				setthreadidentity(8)
 			end
-			window.Size = UDim2.fromOffset(220, 45 + windowlist.AbsoluteContentSize.Y / scale.Scale)
+			-- keep the centered sidebar fixed; only update label padding on scale/content changes
 			for _, v in categoryapi.Buttons do
 				if v.Icon then
 					v.Object.Text = string.rep(' ', 33 * scale.Scale)..v.Name
@@ -4003,6 +4064,8 @@ function mainapi:CreateGUI()
 	end)
 	settingsbutton.MouseButton1Click:Connect(function()
 		settingspane.Visible = true
+		settingspane.BackgroundTransparency = 0.14
+		tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = 0.02})
 	end)
 	windowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		if self.ThreadFix then
@@ -6180,7 +6243,7 @@ end
 gui = Instance.new('ScreenGui')
 gui.Name = randomString()
 gui.DisplayOrder = 9999999
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.IgnoreGuiInset = true
 pcall(function() gui.OnTopOfCoreBlur = true end)
 if mainapi.ThreadFix then
