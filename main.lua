@@ -38,7 +38,7 @@ local loadstring = function(...)
 	if err and vape then
 		vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
 	end
-	return res
+	return res, err
 end
 if hookfunction == nil then getgenv().hookfunction = function() end end
 local queue_on_teleport = queue_on_teleport or function() end
@@ -156,7 +156,14 @@ local function fetchSilentwareFile(path)
 	end
 	error("Failed to fetch "..tostring(path))
 end
-local SWFunctions = loadstring(fetchSilentwareFile("libraries/SilentwareFunctions.lua"))()
+local swChunk, swCompileErr = loadstring(fetchSilentwareFile("libraries/SilentwareFunctions.lua"))
+if type(swChunk) ~= "function" then
+	error("Failed to compile libraries/SilentwareFunctions.lua: "..tostring(swCompileErr))
+end
+local SWFunctions = swChunk()
+if type(SWFunctions) ~= "table" or type(SWFunctions.GlobaliseObject) ~= "function" then
+	error("libraries/SilentwareFunctions.lua returned invalid data")
+end
 --pload('libraries/SilentwareFunctions.lua', true, true)
 SWFunctions.GlobaliseObject("SilentwareFunctions", SWFunctions)
 SWFunctions.GlobaliseObject("SWFunctions", SWFunctions)

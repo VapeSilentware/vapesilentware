@@ -405,10 +405,20 @@ local function pload(fileName, isImportant, required)
     end        
     if shared.VoidDev and shared.DebugMode then warn(fileName, isImportant, required, debug.traceback(fileName)) end
     local res = vapeGithubRequest(fileName, isImportant)
-    local a = loadstring(res)
+    local a, loadErr = loadstring(res)
     local suc, err = true, ""
-    if type(a) ~= "function" then suc = false
-err = tostring(a) else if required then return a() else a() end end
+    if type(a) ~= "function" then
+        suc = false
+        err = tostring(loadErr or a)
+    else
+        local called, callRes = pcall(a)
+        if not called then
+            suc = false
+            err = tostring(callRes)
+        elseif required then
+            return callRes
+        end
+    end
     if (not suc) then 
         if isImportant then
             if (not string.find(string.lower(err), "vape already injected")) then
