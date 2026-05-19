@@ -1,9 +1,11 @@
+local baseLoadstring = loadstring
 local loadstring = function(...)
-	local res, err = loadstring(...)
-	if err and vape then
-		vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
+	local res, err = baseLoadstring(...)
+	local sharedVape = shared and shared.vape
+	if err and sharedVape and sharedVape.CreateNotification then
+		sharedVape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
 	end
-	return res
+	return res, err
 end
 local isfile = isfile or function(file)
 	local suc, res = pcall(function()
@@ -59,7 +61,11 @@ local gameCamera = game.Workspace.CurrentCamera or game.Workspace:FindFirstChild
 local lplr = playersService.LocalPlayer
 local assetfunction = getcustomasset
 
-local vape = shared.vape
+repeat task.wait() until (shared and shared.vape) or (shared and shared.GuiLibrary) or (getgenv and getgenv().vape)
+local vape = (shared and shared.vape) or (shared and shared.GuiLibrary) or (getgenv and getgenv().vape)
+if type(vape) ~= "table" or type(vape.Libraries) ~= "table" then
+	error("universal.lua: Vape GUI context missing or invalid")
+end
 local tween = vape.Libraries.tween
 local targetinfo = vape.Libraries.targetinfo
 local getfontsize = vape.Libraries.getfontsize
