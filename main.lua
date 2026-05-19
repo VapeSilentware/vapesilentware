@@ -241,6 +241,53 @@ local function fetchSilentwareFile(path)
 	end
 	error("Failed to fetch "..tostring(path))
 end
+
+-- Some executors/loadstring environments do not expose getgenv().pload as a plain
+-- global inside main.lua. Keep a local reference and provide a safe fallback loader so
+-- main.lua can still fetch required project files without crashing at the GUI load line.
+local pload = (shared and shared.pload) or (type(getgenv) == "function" and getgenv().pload)
+if type(pload) ~= "function" then
+	pload = function(fileName, isImportant, required)
+		fileName = tostring(fileName or "")
+		local source
+		local fetched, fetchErr = pcall(function()
+			source = fetchSilentwareFile(fileName)
+		end)
+		if not fetched or type(source) ~= "string" then
+			local msg = "Failed to fetch "..fileName..": "..tostring(fetchErr)
+			if isImportant then error(msg, 0) else warn(msg) end
+			return nil
+		end
+
+		local chunk, compileErr = loadstring(source)
+		if type(chunk) ~= "function" then
+			source = source:gsub("\239\187\191", ""):gsub("^[%z\1-\9\11-\12\14-\31]+", "")
+			chunk, compileErr = loadstring(source)
+		end
+		if type(chunk) ~= "function" then
+			local msg = "Failed to compile "..fileName..": "..tostring(compileErr)
+			if isImportant then error(msg, 0) else warn(msg) end
+			return nil
+		end
+
+		local ran, result = pcall(chunk)
+		if not ran then
+			local msg = "Failed to run "..fileName..": "..tostring(result)
+			if isImportant then error(msg, 0) else warn(msg) end
+			return nil
+		end
+		if required and result == nil then
+			local msg = "Required file returned nil: "..fileName
+			if isImportant then error(msg, 0) else warn(msg) end
+			return nil
+		end
+		return result
+	end
+	shared.pload = pload
+	if type(getgenv) == "function" then
+		getgenv().pload = pload
+	end
+end
 local swSource = fetchSilentwareFile("libraries/SilentwareFunctions.lua")
 local swChunk, swCompileErr = loadstring(swSource)
 if type(swChunk) ~= "function" then
