@@ -139,8 +139,84 @@ if not isfolder('vape/assets') then
 	makefolder('vape/assets')
 end
 
+local function showSilentwareGithubOnlyError(reason)
+	local message = 'you have to use the github version'
+	pcall(function()
+		game:GetService('StarterGui'):SetCore('SendNotification', {
+			Title = 'Silentware blocked',
+			Text = message,
+			Duration = 12
+		})
+	end)
+	pcall(function()
+		local guiParent = game:GetService('CoreGui')
+		local screen = Instance.new('ScreenGui')
+		screen.Name = 'SilentwareGithubOnlyError'
+		screen.IgnoreGuiInset = true
+		screen.ResetOnSpawn = false
+		screen.DisplayOrder = 999999
+		screen.Parent = guiParent
+		local shade = Instance.new('Frame')
+		shade.Size = UDim2.fromScale(1, 1)
+		shade.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		shade.BackgroundTransparency = 0.22
+		shade.BorderSizePixel = 0
+		shade.Parent = screen
+		local card = Instance.new('Frame')
+		card.AnchorPoint = Vector2.new(0.5, 0.5)
+		card.Position = UDim2.fromScale(0.5, 0.5)
+		card.Size = UDim2.fromOffset(420, 168)
+		card.BackgroundColor3 = Color3.fromRGB(8, 14, 12)
+		card.BorderSizePixel = 0
+		card.Parent = shade
+		local corner = Instance.new('UICorner')
+		corner.CornerRadius = UDim.new(0, 18)
+		corner.Parent = card
+		local stroke = Instance.new('UIStroke')
+		stroke.Color = Color3.fromRGB(64, 95, 76)
+		stroke.Transparency = 0.32
+		stroke.Thickness = 1
+		stroke.Parent = card
+		local accent = Instance.new('Frame')
+		accent.Size = UDim2.new(1, -36, 0, 2)
+		accent.Position = UDim2.fromOffset(18, 58)
+		accent.BackgroundColor3 = Color3.fromRGB(56, 215, 139)
+		accent.BorderSizePixel = 0
+		accent.Parent = card
+		local accentCorner = Instance.new('UICorner')
+		accentCorner.CornerRadius = UDim.new(1, 0)
+		accentCorner.Parent = accent
+		local title = Instance.new('TextLabel')
+		title.Size = UDim2.new(1, -36, 0, 28)
+		title.Position = UDim2.fromOffset(18, 18)
+		title.BackgroundTransparency = 1
+		title.Text = 'Silentware blocked'
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.TextColor3 = Color3.fromRGB(241, 250, 246)
+		title.TextSize = 20
+		title.Font = Enum.Font.GothamSemibold
+		title.Parent = card
+		local body = Instance.new('TextLabel')
+		body.Size = UDim2.new(1, -36, 0, 74)
+		body.Position = UDim2.fromOffset(18, 74)
+		body.BackgroundTransparency = 1
+		body.Text = message..'\n'..tostring(reason or '')
+		body.TextWrapped = true
+		body.TextXAlignment = Enum.TextXAlignment.Left
+		body.TextYAlignment = Enum.TextYAlignment.Top
+		body.TextColor3 = Color3.fromRGB(153, 184, 168)
+		body.TextSize = 13
+		body.Font = Enum.Font.Gotham
+		body.Parent = card
+	end)
+	error(message, 0)
+end
+
 local swRepo = tostring(shared.SilentwareRepo or "VapeSilentware/vapesilentware")
 local swBranch = tostring(shared.CustomCommit or shared.SilentwareBranch or "main")
+if shared.SilentwareRequireGithub ~= false and (swRepo ~= 'VapeSilentware/vapesilentware' or swBranch ~= 'main') then
+	showSilentwareGithubOnlyError('Expected VapeSilentware/vapesilentware/main, got '..swRepo..'/'..swBranch)
+end
 local function stripBom(str)
 	if type(str) ~= "string" then
 		return str
@@ -182,6 +258,60 @@ end
 --pload('libraries/SilentwareFunctions.lua', true, true)
 SWFunctions.GlobaliseObject("SilentwareFunctions", SWFunctions)
 SWFunctions.GlobaliseObject("SWFunctions", SWFunctions)
+
+local function loadSilentwareAccess()
+	local fallback = {
+		Tier = 'free',
+		Level = 0,
+		Reason = 'Access library unavailable; using free tier.',
+		Levels = {free = 0, standard = 1, premium = 2, beta = 3, admin = 4},
+		DisplayNames = {free = 'Free', standard = 'Standard', premium = 'Premium', beta = 'Beta', admin = 'Admin'},
+		CanUseModule = function(self, category, moduleName)
+			local required = ({Combat = 'standard', Blatant = 'premium', Render = 'free', Utility = 'free', World = 'standard', Misc = 'free', Inventory = 'standard', Minigames = 'standard', Legit = 'free'})[category] or 'free'
+			local levels = self.Levels
+			return (self.Level or 0) >= (levels[required] or 0), required, levels[required] or 0
+		end,
+		CheckKey = function(self) return self end,
+		AdminLogin = function() return false, 'Access library unavailable.' end,
+		GrantKey = function() return false, 'Access library unavailable.' end,
+		RevokeKey = function() return false, 'Access library unavailable.' end,
+		SetUserTier = function() return false, 'Access library unavailable.' end
+	}
+	local source
+	local ok, err = pcall(function()
+		source = fetchSilentwareFile('libraries/access.lua')
+	end)
+	if not ok or type(source) ~= 'string' then
+		shared.SilentwareAccess = fallback
+		return fallback
+	end
+	local chunk, compileErr = loadstring(source)
+	if type(chunk) ~= 'function' then
+		warn('Failed to compile libraries/access.lua: '..tostring(compileErr))
+		shared.SilentwareAccess = fallback
+		return fallback
+	end
+	local ran, access = pcall(chunk)
+	if not ran or type(access) ~= 'table' then
+		warn('Failed to run libraries/access.lua: '..tostring(access))
+		shared.SilentwareAccess = fallback
+		return fallback
+	end
+	if type(access.Check) == 'function' then
+		local checked, checkErr = pcall(function()
+			access:Check()
+		end)
+		if not checked then warn('Silentware access check failed: '..tostring(checkErr)) end
+	end
+	shared.SilentwareAccess = access
+	if access.Blocked then
+		error('Silentware access blocked: '..tostring(access.Reason or 'access denied'), 0)
+	end
+	return access
+end
+
+local SilentwareAccess = loadSilentwareAccess()
+SWFunctions.GlobaliseObject('SilentwareAccess', SilentwareAccess)
 
 vape = pload('guis/'..gui..'.lua', true, true)
 if type(vape) ~= "table" or type(vape.Load) ~= "function" then

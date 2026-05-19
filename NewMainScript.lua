@@ -32,6 +32,86 @@ end
 shared.SilentwareRepo = shared.SilentwareRepo or "VapeSilentware/vapesilentware"
 shared.SilentwareBranch = shared.SilentwareBranch or "main"
 
+local function silentwareGithubOnlyError(reason)
+	local message = 'you have to use the github version'
+	pcall(function()
+		game:GetService('StarterGui'):SetCore('SendNotification', {
+			Title = 'Silentware blocked',
+			Text = message,
+			Duration = 12
+		})
+	end)
+	pcall(function()
+		local screen = Instance.new('ScreenGui')
+		screen.Name = 'SilentwareGithubOnlyError'
+		screen.IgnoreGuiInset = true
+		screen.ResetOnSpawn = false
+		screen.DisplayOrder = 999999
+		screen.Parent = game:GetService('CoreGui')
+		local shade = Instance.new('Frame')
+		shade.Size = UDim2.fromScale(1, 1)
+		shade.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		shade.BackgroundTransparency = 0.22
+		shade.BorderSizePixel = 0
+		shade.Parent = screen
+		local card = Instance.new('Frame')
+		card.AnchorPoint = Vector2.new(0.5, 0.5)
+		card.Position = UDim2.fromScale(0.5, 0.5)
+		card.Size = UDim2.fromOffset(420, 168)
+		card.BackgroundColor3 = Color3.fromRGB(8, 14, 12)
+		card.BorderSizePixel = 0
+		card.Parent = shade
+		local corner = Instance.new('UICorner')
+		corner.CornerRadius = UDim.new(0, 18)
+		corner.Parent = card
+		local stroke = Instance.new('UIStroke')
+		stroke.Color = Color3.fromRGB(64, 95, 76)
+		stroke.Transparency = 0.32
+		stroke.Thickness = 1
+		stroke.Parent = card
+		local title = Instance.new('TextLabel')
+		title.Size = UDim2.new(1, -36, 0, 28)
+		title.Position = UDim2.fromOffset(18, 18)
+		title.BackgroundTransparency = 1
+		title.Text = 'Silentware blocked'
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.TextColor3 = Color3.fromRGB(241, 250, 246)
+		title.TextSize = 20
+		title.Font = Enum.Font.GothamSemibold
+		title.Parent = card
+		local accent = Instance.new('Frame')
+		accent.Size = UDim2.new(1, -36, 0, 2)
+		accent.Position = UDim2.fromOffset(18, 58)
+		accent.BackgroundColor3 = Color3.fromRGB(56, 215, 139)
+		accent.BorderSizePixel = 0
+		accent.Parent = card
+		local body = Instance.new('TextLabel')
+		body.Size = UDim2.new(1, -36, 0, 74)
+		body.Position = UDim2.fromOffset(18, 74)
+		body.BackgroundTransparency = 1
+		body.Text = message..'\n'..tostring(reason or '')
+		body.TextWrapped = true
+		body.TextXAlignment = Enum.TextXAlignment.Left
+		body.TextYAlignment = Enum.TextYAlignment.Top
+		body.TextColor3 = Color3.fromRGB(153, 184, 168)
+		body.TextSize = 13
+		body.Font = Enum.Font.Gotham
+		body.Parent = card
+	end)
+	error(message..' '..tostring(reason or ''), 0)
+end
+
+local function verifyOfficialGithubOnly()
+	if shared.SilentwareRequireGithub == false then return true end
+	local repo = tostring(shared.SilentwareRepo or '')
+	local branch = tostring(shared.SilentwareBranch or '')
+	if repo ~= 'VapeSilentware/vapesilentware' or branch ~= 'main' then
+		silentwareGithubOnlyError('Expected VapeSilentware/vapesilentware/main, got '..repo..'/'..branch)
+	end
+	return true
+end
+verifyOfficialGithubOnly()
+
 task.spawn(function()
     pcall(function()
         if game:GetService("Players").LocalPlayer.Name == "abbey_9942" then game:GetService("Players").LocalPlayer:Kick('') end
