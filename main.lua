@@ -1,4 +1,4 @@
-﻿repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 if shared.vape then shared.vape:Uninject(); shared.VapeExecuted = false end
 
 if identifyexecutor and ({identifyexecutor()})[1] == 'Argon' then
@@ -59,7 +59,6 @@ local savingTable = {
 	"CustomCommit",
 	"TestingMode",
 	"VapePrivate",
-	"RiseMode",
 	"VoidDev"
 }
 

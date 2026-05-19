@@ -1,4 +1,4 @@
-﻿repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 repeat task.wait() until shared.GuiLibrary
 repeat task.wait() until shared.GlobalBedwars
 

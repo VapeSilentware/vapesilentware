@@ -1,4 +1,4 @@
-﻿
+
 repeat task.wait() until game:IsLoaded()
 repeat task.wait() until shared.GuiLibrary
 
@@ -16,7 +16,7 @@ local getfontsize = vape.Libraries.getfontsize
 local getcustomasset = vape.Libraries.getcustomasset
 local entityLibrary = entitylib
 
-local baseDirectory = shared.RiseMode and "rise/" or "vape/"
+local baseDirectory = "vape/"
 
 local runService = game:GetService("RunService")
 local RunService = runService
@@ -1557,7 +1557,7 @@ run(function() local CharacterOutline = {}
 						outline.FillTransparency = 1
 						outline.Adornee = lplr.Character
 						if GuiSync.Enabled then
-							if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+							if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
 								outline.OutlineColor = GuiLibrary.GUICoreColor
 								CharacterOutline:Clean(GuiLibrary.GUICoreColorChanged.Event:Connect(function()
 									outline.OutlineColor = GuiLibrary.GUICoreColor

@@ -1,4 +1,4 @@
-﻿repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 local vape = shared.vape
 local entitylib = vape.Libraries.entity
 local entityLibrary = entitylib

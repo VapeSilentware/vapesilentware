@@ -1,4 +1,4 @@
-﻿local mainapi = {
+local mainapi = {
 	Categories = {},
 	GUIColor = {
 		Hue = 0.46,
@@ -6348,22 +6348,6 @@ scaleslider = guipane:CreateSlider({
 	Darker = true,
 	Visible = false
 })
---[[guipane:CreateDropdown({
-	Name = 'GUI Theme',
-	List = {'new', 'old', 'rise'},
-	Function = function(val, mouse)
-		if mouse then
-			writefile('vape/profiles/gui.txt', val)
-			shared.vapereload = true
-			if shared.VapeDeveloper then
-				loadstring(readfile('vape/loader.lua'), 'loader')()
-			else
-				loadstring(game:HttpGet('https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/'..readfile('vape/profiles/commit.txt')..'/loader.lua', true))()
-			end
-		end
-	end,
-	Tooltip = 'new - The newest vape theme to since v4.05\nold - The vape theme pre v4.05\nrise - Rise 6.0'
-})--]]
 mainapi.RainbowMode = guipane:CreateDropdown({
 	Name = 'Rainbow Mode',
 	List = {'Normal', 'Gradient', 'Retro'},

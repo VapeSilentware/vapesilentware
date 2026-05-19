@@ -1,4 +1,4 @@
-﻿repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 
 local vape = shared.vape
 local tween = vape.Libraries.tween
@@ -4008,7 +4008,7 @@ run(function()
 			if (not shared.CheatEngineMode) then
 				RangeCirclePart = Instance.new("MeshPart")
 				RangeCirclePart.MeshId = "rbxassetid://3726303797"
-				if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+				if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
 					RangeCirclePart.Color = GuiLibrary.GUICoreColor
 					GuiLibrary.GUICoreColorChanged.Event:Connect(function()
 						RangeCirclePart.Color = GuiLibrary.GUICoreColor
@@ -8781,7 +8781,7 @@ run(function()
 					end
 					if GuiSync.Enabled then
 						pcall(function()
-							if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+							if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
 								AntiVoidPart.Color = GuiLibrary.GUICoreColor
 								AntiVoid:Clean(GuiLibrary.GUICoreColorChanged.Event:Connect(function()
 									if AntiVoid.Enabled and GuiSync.Enabled then

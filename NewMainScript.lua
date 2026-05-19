@@ -1,6 +1,3 @@
-﻿if shared.RiseMode then
-    return loadstring(game:HttpGet('https://raw.githubusercontent.com/VapeSilentware/SWRise/main/NewMainScript.lua'))()
-end
 local smooth = not game:IsLoaded()
 repeat task.wait() until game:IsLoaded()
 if smooth then
@@ -31,10 +28,6 @@ for _, folder in {'vape', 'vape/games', 'vape/profiles', 'vape/assets', 'vape/li
 		makefolder(folder)
 	end
 end
-
-pcall(function()
-    writefile('vape/profiles/gui.txt', 'new')
-end)
 
 if not shared.VapeDeveloper then
 	local _, subbed = pcall(function()
@@ -148,16 +141,14 @@ if shared.ForceDisableCE then CheatEngineMode = false
 shared.CheatEngineMode = false end
 shared.CheatEngineMode = shared.CheatEngineMode or CheatEngineMode
 if (not isfolder('vape')) then makefolder('vape') end
-if (not isfolder('rise')) then makefolder('rise') end
 if (not isfolder('vape/Libraries')) then makefolder('vape/Libraries') end
-if (not isfolder('rise/Libraries')) then makefolder('rise/Libraries') end
-local baseDirectory = shared.RiseMode and "rise/" or "vape/"
+local baseDirectory = "vape/"
 local function install_profiles(num)
     if not num then return warn("No number specified!") end
     local httpservice = game:GetService('HttpService')
     local guiprofiles = {}
     local profilesfetched
-    local repoOwner = shared.RiseMode and "VapeSilentware/RiseProfiles" or "Silentbg/SilentwareProfiles"
+    local repoOwner = "Silentbg/SilentwareProfiles"
     local function vapeGithubRequest(scripturl)
         local suc, res = pcall(function() return game:HttpGet('https://raw.githubusercontent.com/'..repoOwner..'/main/'..scripturl, true) end)
         if not isfolder(baseDirectory.."profiles") then
@@ -229,7 +220,6 @@ local function are_installed_1()
     if isfile(baseDirectory..'libraries/profilesinstalled5.txt') then return true else return false end
 end
 if not are_installed_1() then pcall(function() install_profiles(1) end) end
-local url = shared.RiseMode and "https://github.com/VapeSilentware/SWRise/" or "https://github.com/VapeSilentware/SWRewrite"
 local commit = "main"
 writefile(baseDirectory.."commithash2.txt", commit)
 commit = '070e96570036b2836b10f3581c88bd452f722c26'
@@ -251,7 +241,7 @@ local function vapeGithubRequest(scripturl, isImportant)
     end
     local suc, res
     if commit == nil then commit = "main" end
-    local url = (scripturl == "MainScript.lua" or scripturl == "GuiLibrary.lua") and shared.RiseMode and "https://raw.githubusercontent.com/VapeSilentware/SWRise/" or "https://raw.githubusercontent.com/VapeSilentware/SWRewrite/"
+    local url = "https://raw.githubusercontent.com/VapeSilentware/SWRewrite/"
     suc, res = pcall(function() return game:HttpGet(url..commit.."/"..scripturl, true) end)
     if not suc or res == "404: Not Found" then
         if isImportant then
@@ -261,14 +251,14 @@ local function vapeGithubRequest(scripturl, isImportant)
 				Duration = 15,
 			})
             pcall(function()
-                shared.GuiLibrary:SelfDestruct()
-                shared.vape:Uninject()
-                shared.rise:SelfDestruct()
+                if shared.GuiLibrary and shared.GuiLibrary.SelfDestruct then
+                    shared.GuiLibrary:SelfDestruct()
+                end
+                if shared.vape and shared.vape.Uninject then
+                    shared.vape:Uninject()
+                end
                 shared.vape = nil
-                shared.vape = nil
-                shared.rise = nil
                 shared.VapeExecuted = nil
-                shared.RiseExecuted = nil
             end)
             --game:GetService("Players").LocalPlayer:Kick(string.format("CH: %s Failed to connect to github: %s%s : %s", tostring(commit), tostring(baseDirectory), tostring(scripturl), tostring(res)))
         end
@@ -417,7 +407,7 @@ local function pload(fileName, isImportant, required)
 err = tostring(a) else if required then return a() else a() end end
     if (not suc) then 
         if isImportant then
-            if (not string.find(string.lower(err), "vape already injected")) and (not string.find(string.lower(err), "rise already injected")) then
+            if (not string.find(string.lower(err), "vape already injected")) then
 				warn("[".."Failure loading critical file! : "..baseDirectory..tostring(fileName).."]: "..tostring(debug.traceback(err)))
             end
         else

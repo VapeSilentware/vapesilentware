@@ -1,4 +1,4 @@
-﻿--[[
+--[[
 	Credits:
 	Inf Yield (a.k.a. Infinite Yield)
 	Please notify me if you need credits

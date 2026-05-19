@@ -1,4 +1,4 @@
-﻿repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 repeat task.wait() until shared.GuiLibrary
 
 local function run(func)
@@ -6068,7 +6068,7 @@ run(function()
                     --v.Material = Enum.Material[TexturePacksV2_GUI_Elements.Material.Value]
 					v.Material = Enum.Material.ForceField
                     if TexturePacksV2_GUI_Elements.GuiSync.Enabled and TexturePacksV2.Enabled then
-                        if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+                        if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
                             v.Color = GuiLibrary.GUICoreColor
 							TexturePacksV2:Clean(GuiLibrary.GUICoreColorChanged.Event:Connect(function()
                                 if TexturePacksV2_GUI_Elements.GuiSync.Enabled then v.Color = GuiLibrary.GUICoreColor end
@@ -8277,7 +8277,7 @@ run(function()
 					table.insert(hotbarcoloricons, sloticon.Parent) 
 				end
 				if GuiSync.Enabled then 
-					if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+					if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
 						sloticon.Parent.BackgroundColor3 = GuiLibrary.GUICoreColor
 						GuiLibrary.GUICoreColorChanged.Event:Connect(function()
 							pcall(function()
@@ -8330,7 +8330,7 @@ run(function()
 				if HotbarHighlight.Enabled then
 					local highlight = Instance.new('UIStroke')
 					if GuiSync.Enabled then
-						if shared.RiseMode and GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
+						if GuiLibrary.GUICoreColor and GuiLibrary.GUICoreColorChanged then
 							highlight.Color = GuiLibrary.GUICoreColor
 							GuiLibrary.GUICoreColorChanged.Event:Connect(function()
 								highlight.Color = GuiLibrary.GUICoreColor
