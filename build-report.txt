@@ -1,0 +1,8 @@
+Silentware metadata guard fix report
+Build ID: sw-f55c334da4db495d9c83f666340b73d6
+Version: v5-ambitious-rainbow
+Patched Lua files: 0
+Skipped Lua files: 40
+Release hash: b13dbaaaced79f35ca1769cb99670796c01308b9b1c5a175c8b8907230076b7f
+
+Patched files:
