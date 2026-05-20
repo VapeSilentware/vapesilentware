@@ -1,8 +1,48 @@
-Silentware metadata guard fix report
+Silentware forced metadata guard shim report
 Build ID: sw-f55c334da4db495d9c83f666340b73d6
 Version: v5-ambitious-rainbow
-Patched Lua files: 0
-Skipped Lua files: 40
-Release hash: b13dbaaaced79f35ca1769cb99670796c01308b9b1c5a175c8b8907230076b7f
+Patched Lua files: 40
+Skipped Lua files: 19
+Release hash: 35a3b32b10ffc463b6753f9cd0145090d5439d5a1d2104d14bc39d0d40a3fe78
 
 Patched files:
+- MainScript.lua
+- NewMainScript.lua
+- doorsloader.lua
+- games/11156779721.lua
+- games/11630038968.lua
+- games/12011959048.lua
+- games/125009265613167.lua
+- games/13246639586.lua
+- games/14191889582.lua
+- games/14662411059.lua
+- games/5938036553.lua
+- games/606849621.lua
+- games/6872265039.lua
+- games/6872274481.lua
+- games/8444591321.lua
+- games/8542259458.lua
+- games/8542275097.lua
+- games/8560631822.lua
+- games/8592115909.lua
+- games/8768229691.lua
+- games/8951451142.lua
+- games/99567941238278.lua
+- games/CE6872265039.lua
+- games/CE6872274481.lua
+- games/SW126509999114328.lua
+- games/SW6872265039.lua
+- games/SW6872274481.lua
+- games/SW79546208627805.lua
+- games/SWUniversal.lua
+- games/universal.lua
+- guis/new.lua
+- libraries/SilentwareFunctions.lua
+- libraries/access.lua
+- libraries/drawing.lua
+- libraries/entity.lua
+- libraries/hash.lua
+- libraries/prediction.lua
+- libraries/vm.lua
+- loader.lua
+- main.lua

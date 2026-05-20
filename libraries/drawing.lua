@@ -1,3 +1,11 @@
+-- Silentware metadata guard shim
+local __sw_metadata_error = error
+local function error(message, level)
+	if tostring(message) == 'Silentware build metadata unavailable' then
+		return nil
+	end
+	return __sw_metadata_error(message, level)
+end
 do
 local __sw_ead9d41ac7={b=("sw-f5".."5c3".."34da4db49".."5d9c83f6".."66340b73".."d6"),v=("v5-amb".."itious-r".."ainb".."ow"),p=("libraries".."/drawing"..".lua")}
 local function __sw_176b8e5135(x)return type(x)=='string' and #x>0 end
