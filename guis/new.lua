@@ -505,14 +505,14 @@ end
 local function addGlow(parent, name, transparency, sizePad)
 	local glow = Instance.new('ImageLabel')
 	glow.Name = name or 'Glow'
-	glow.Size = UDim2.new(1, sizePad or 62, 1, sizePad or 62)
-	glow.Position = UDim2.fromOffset(-((sizePad or 62) / 2), -((sizePad or 62) / 2))
+	local pad = sizePad or 62
+	glow.Size = UDim2.new(1, pad, 1, pad)
+	glow.Position = UDim2.fromOffset(-(pad / 2), -(pad / 2))
 	glow.BackgroundTransparency = 1
-	glow.Image = getcustomasset('vape/assets/blur.png')
+	glow.Image = getcustomasset('vape/assets/softglow.png')
 	glow.ImageColor3 = uipallet.Accent
 	glow.ImageTransparency = transparency == nil and 0.62 or transparency
-	glow.ScaleType = Enum.ScaleType.Slice
-	glow.SliceCenter = Rect.new(52, 31, 261, 502)
+	glow.ScaleType = Enum.ScaleType.Stretch
 	glow.ZIndex = math.max((parent.ZIndex or 1) - 1, 0)
 	glow.Parent = parent
 	return glow
@@ -521,14 +521,14 @@ end
 local function addShadow(parent, name, transparency, sizePad, offsetY)
 	local shadow = Instance.new('ImageLabel')
 	shadow.Name = name or 'DropShadow'
-	shadow.Size = UDim2.new(1, sizePad or 76, 1, sizePad or 76)
-	shadow.Position = UDim2.fromOffset(-((sizePad or 76) / 2), -((sizePad or 76) / 2) + (offsetY or 8))
+	local pad = sizePad or 76
+	shadow.Size = UDim2.new(1, pad, 1, pad)
+	shadow.Position = UDim2.fromOffset(-(pad / 2), -(pad / 2) + (offsetY or 8))
 	shadow.BackgroundTransparency = 1
-	shadow.Image = getcustomasset('vape/assets/blur.png')
+	shadow.Image = getcustomasset('vape/assets/softshadow.png')
 	shadow.ImageColor3 = Color3.new(0, 0, 0)
 	shadow.ImageTransparency = transparency == nil and 0.42 or transparency
-	shadow.ScaleType = Enum.ScaleType.Slice
-	shadow.SliceCenter = Rect.new(52, 31, 261, 502)
+	shadow.ScaleType = Enum.ScaleType.Stretch
 	shadow.ZIndex = math.max((parent.ZIndex or 1) - 2, 0)
 	shadow.Parent = parent
 	return shadow
@@ -953,7 +953,17 @@ end or function(path)
 	return getcustomassets[path] or ''
 end--]]
 getcustomasset = function(path)
-	return getcustomassets[path] or ''
+	local mapped = getcustomassets[path]
+	if mapped then return mapped end
+	if assetfunction and isfile and isfile(path) then
+		local suc, res = pcall(function()
+			return assetfunction(path)
+		end)
+		if suc and type(res) == 'string' and res ~= '' then
+			return res
+		end
+	end
+	return ''
 end
 
 local function getTableSize(tab)
@@ -3264,8 +3274,8 @@ function mainapi:CreateGUI()
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.ClipsDescendants = false
 	mainapi.PremiumShell = shell
-	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', uipallet.ShadowTransparency or 0.14, 168, 18)
-	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.78, 92)
+	mainapi.PremiumShadow = addShadow(shell, 'PremiumDropShadow', 0.58, 78, 10)
+	mainapi.PremiumGlow = addGlow(shell, 'PremiumOuterGlow', 0.86, 54)
 	mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
 	local shellscale = Instance.new('UIScale')
 	shellscale.Name = 'OpenScale'
@@ -3274,10 +3284,7 @@ function mainapi:CreateGUI()
 	mainapi.PremiumScale = shellscale
 
 	local shellGradient = addSurfaceGradient(shell, color.Light(uipallet.Surface, 0.045), uipallet.Main, 90)
-	local orbA, orbAGlow = createAmbientOrb(shell, 'AmbientOrbPrimary', 160, UDim2.new(1, -92, 0, -88), 0.94, 0)
-	local orbB, orbBGlow = createAmbientOrb(shell, 'AmbientOrbSecondary', 116, UDim2.fromOffset(-54, 436), 0.955, 0)
-	orbB.BackgroundColor3 = uipallet.AccentSoft
-	orbBGlow.ImageColor3 = uipallet.AccentSoft
+	-- Ambient orbs were removed because executor image scaling made them appear as ugly transparent squares.
 
 	local innerGlow = Instance.new('Frame')
 	innerGlow.Name = 'InnerAccentGlow'
@@ -3405,7 +3412,7 @@ function mainapi:CreateGUI()
 	sidebar.Parent = shell
 	addCorner(sidebar, UDim.new(0, 14))
 	addStroke(sidebar, uipallet.Border, 1, 0.56)
-	addShadow(sidebar, 'SidebarShadow', 0.28, 96, 10)
+	-- shadow intentionally kept off sidebar to avoid translucent square artifacts
 
 	local content = Instance.new('Frame')
 	content.Name = 'Content'
@@ -3418,7 +3425,7 @@ function mainapi:CreateGUI()
 	content.Parent = shell
 	addCorner(content, UDim.new(0, 14))
 	addStroke(content, uipallet.Border, 1, 0.52)
-	addShadow(content, 'ContentShadow', 0.30, 92, 10)
+	-- shadow intentionally kept off content panel to avoid translucent square artifacts
 	mainapi.PremiumContent = content
 	mainapi.PremiumSidebar = sidebar
 
@@ -3480,7 +3487,7 @@ function mainapi:CreateGUI()
 	settingspane.Parent = shell
 	settingspane.ZIndex = 30
 	addCorner(settingspane, UDim.new(0, 18))
-	addShadow(settingspane, 'SettingsShadow', 0.14, 132, 12)
+	addShadow(settingspane, 'SettingsShadow', 0.62, 54, 8)
 	local title = Instance.new('TextLabel')
 	title.Name = 'Title'
 	title.Size = UDim2.new(1, -36, 0, 20)

@@ -132,6 +132,12 @@ local function normaliseTier(tier)
 	return tier, ACCESS.Levels[tier]
 end
 
+local function cleanString(value)
+	value = tostring(value or '')
+	value = value:gsub('^%s+', ''):gsub('%s+$', '')
+	return value
+end
+
 local function applyResult(result, source)
 	result = type(result) == 'table' and result or {}
 	if result.config then
@@ -337,12 +343,26 @@ end
 function ACCESS:AdminRequest(action, data)
 	if not self.AdminAuthed then return false, 'Admin panel is locked.' end
 	if self.Config.AdminEndpoint == '' then return false, 'No admin endpoint is configured.' end
-	local response = httpPost(self.Config.AdminEndpoint, {
-		action = action,
+
+	data = type(data) == 'table' and data or {}
+	local payload = {
+		action = cleanString(action),
 		adminKey = self.AdminKey,
-		data = data or {},
 		actor = lplr and lplr.UserId or 0
-	}, {['Content-Type'] = 'application/json', ['Authorization'] = 'Bearer '..tostring(self.AdminKey or '')})
+	}
+
+	-- The Cloudflare backend expects grant/revoke fields at the top level.
+	-- Older v5 builds nested these under `data`, which made the backend see an empty target
+	-- and return `target key must be at least 8 characters` even when the UI textbox was filled.
+	for key, value in pairs(data) do
+		payload[key] = value
+	end
+	payload.reason = cleanString(payload.reason or payload.note or 'admin action')
+	payload.note = cleanString(payload.note or payload.reason)
+	if payload.key and not payload.target then payload.target = payload.key end
+	if payload.userId and not payload.target then payload.target = payload.userId end
+
+	local response = httpPost(self.Config.AdminEndpoint, payload, {['Content-Type'] = 'application/json', ['Authorization'] = 'Bearer '..tostring(self.AdminKey or '')})
 	local decoded = decodeJson(response)
 	if decoded and decoded.ok then
 		return true, decoded.message or 'Admin request completed.'
@@ -351,17 +371,23 @@ function ACCESS:AdminRequest(action, data)
 end
 
 function ACCESS:GrantKey(targetKey, tier, note)
+	targetKey = cleanString(targetKey)
 	tier = normaliseTier(tier)
-	return self:AdminRequest('grant', {key = targetKey, tier = tier, note = note})
+	if #targetKey < 8 then return false, 'Target key must be at least 8 characters.' end
+	return self:AdminRequest('grantKey', {target = targetKey, key = targetKey, tier = tier, reason = note, note = note})
 end
 
 function ACCESS:RevokeKey(targetKey, reason)
-	return self:AdminRequest('revoke', {key = targetKey, reason = reason})
+	targetKey = cleanString(targetKey)
+	if #targetKey < 8 then return false, 'Target key must be at least 8 characters.' end
+	return self:AdminRequest('revokeKey', {target = targetKey, key = targetKey, reason = reason, note = reason})
 end
 
 function ACCESS:SetUserTier(userId, tier, note)
+	userId = cleanString(userId)
 	tier = normaliseTier(tier)
-	return self:AdminRequest('setUserTier', {userId = tostring(userId), tier = tier, note = note})
+	if userId == '' then return false, 'Enter a Roblox user id.' end
+	return self:AdminRequest('setUserTier', {target = userId, userId = userId, robloxUserId = userId, tier = tier, reason = note, note = note})
 end
 
 ACCESS:Configure(shared.SilentwareAccessConfig or {})
