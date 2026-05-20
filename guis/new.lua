@@ -38,6 +38,7 @@ local textService = cloneref(game:GetService('TextService'))
 local guiService = cloneref(game:GetService('GuiService'))
 local runService = cloneref(game:GetService('RunService'))
 local httpService = cloneref(game:GetService('HttpService'))
+local lightingService = cloneref(game:GetService('Lighting'))
 
 local fontsize = Instance.new('GetTextBoundsParams')
 fontsize.Width = math.huge
@@ -84,6 +85,12 @@ local uipallet = {
 	OpenTween = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 }
 
+mainapi.RainbowMode = mainapi.RainbowMode or {Value = 'Gradient'}
+mainapi.RainbowTheme = false
+mainapi.GUIColor.Rainbow = false
+
+local interfaceBlur
+
 local access = shared.SilentwareAccess or mainapi.Access or {
 	Tier = 'free',
 	Level = 0,
@@ -117,6 +124,421 @@ local themePresets = {
 		Sat = 0.72,
 		Value = 0.84,
 		Description = 'deep black glass with rich emerald glow'
+	},
+	['Cotton Candy'] = {
+		Main = Color3.fromRGB(9, 8, 18),
+		Surface = Color3.fromRGB(18, 18, 34),
+		SurfaceAlt = Color3.fromRGB(28, 31, 55),
+		SurfaceHigh = Color3.fromRGB(42, 48, 78),
+		Border = Color3.fromRGB(95, 94, 140),
+		Accent = Color3.fromRGB(255, 122, 206),
+		AccentSoft = Color3.fromRGB(95, 181, 255),
+		AccentGlow = Color3.fromRGB(116, 211, 255),
+		SelectedTab = Color3.fromRGB(53, 45, 83),
+		ActiveToggle = Color3.fromRGB(255, 122, 206),
+		NotificationAccent = Color3.fromRGB(116, 211, 255),
+		Text = Color3.fromRGB(255, 246, 253),
+		MutedText = Color3.fromRGB(197, 194, 230),
+		DimText = Color3.fromRGB(132, 132, 171),
+		GlassTransparency = 0.08,
+		PanelTransparency = 0.055,
+		ShadowTransparency = 0.16,
+		Hue = 0.89,
+		Sat = 0.52,
+		Value = 1,
+		Description = 'soft blue and pink glass with dreamy candy glow'
+	},
+	['Sapphire Night'] = {
+		Main = Color3.fromRGB(4, 8, 18),
+		Surface = Color3.fromRGB(8, 15, 30),
+		SurfaceAlt = Color3.fromRGB(13, 25, 50),
+		SurfaceHigh = Color3.fromRGB(22, 41, 78),
+		Border = Color3.fromRGB(55, 86, 138),
+		Accent = Color3.fromRGB(79, 154, 255),
+		AccentSoft = Color3.fromRGB(45, 92, 185),
+		AccentGlow = Color3.fromRGB(105, 190, 255),
+		SelectedTab = Color3.fromRGB(20, 45, 89),
+		ActiveToggle = Color3.fromRGB(79, 154, 255),
+		NotificationAccent = Color3.fromRGB(105, 190, 255),
+		Text = Color3.fromRGB(240, 247, 255),
+		MutedText = Color3.fromRGB(152, 177, 214),
+		DimText = Color3.fromRGB(91, 116, 153),
+		GlassTransparency = 0.055,
+		PanelTransparency = 0.045,
+		ShadowTransparency = 0.14,
+		Hue = 0.59,
+		Sat = 0.68,
+		Value = 1,
+		Description = 'polished midnight blue with sapphire dashboard accents'
+	},
+	['Royal Amethyst'] = {
+		Main = Color3.fromRGB(12, 6, 18),
+		Surface = Color3.fromRGB(22, 12, 31),
+		SurfaceAlt = Color3.fromRGB(34, 20, 50),
+		SurfaceHigh = Color3.fromRGB(51, 32, 72),
+		Border = Color3.fromRGB(99, 72, 139),
+		Accent = Color3.fromRGB(181, 111, 255),
+		AccentSoft = Color3.fromRGB(121, 72, 197),
+		AccentGlow = Color3.fromRGB(205, 146, 255),
+		SelectedTab = Color3.fromRGB(55, 34, 81),
+		ActiveToggle = Color3.fromRGB(181, 111, 255),
+		NotificationAccent = Color3.fromRGB(205, 146, 255),
+		Text = Color3.fromRGB(250, 244, 255),
+		MutedText = Color3.fromRGB(201, 176, 222),
+		DimText = Color3.fromRGB(136, 105, 158),
+		GlassTransparency = 0.06,
+		PanelTransparency = 0.045,
+		ShadowTransparency = 0.15,
+		Hue = 0.76,
+		Sat = 0.56,
+		Value = 1,
+		Description = 'luxury purple glass with soft amethyst lighting'
+	},
+	['Rose Quartz'] = {
+		Main = Color3.fromRGB(18, 8, 12),
+		Surface = Color3.fromRGB(30, 15, 21),
+		SurfaceAlt = Color3.fromRGB(47, 24, 34),
+		SurfaceHigh = Color3.fromRGB(70, 38, 51),
+		Border = Color3.fromRGB(129, 77, 94),
+		Accent = Color3.fromRGB(255, 132, 168),
+		AccentSoft = Color3.fromRGB(192, 84, 122),
+		AccentGlow = Color3.fromRGB(255, 173, 199),
+		SelectedTab = Color3.fromRGB(70, 35, 49),
+		ActiveToggle = Color3.fromRGB(255, 132, 168),
+		NotificationAccent = Color3.fromRGB(255, 173, 199),
+		Text = Color3.fromRGB(255, 246, 249),
+		MutedText = Color3.fromRGB(218, 174, 188),
+		DimText = Color3.fromRGB(150, 105, 120),
+		GlassTransparency = 0.055,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.14,
+		Hue = 0.955,
+		Sat = 0.52,
+		Value = 1,
+		Description = 'romantic rose glass with clean quartz highlights'
+	},
+	['Arctic Chrome'] = {
+		Main = Color3.fromRGB(7, 11, 14),
+		Surface = Color3.fromRGB(13, 19, 24),
+		SurfaceAlt = Color3.fromRGB(22, 31, 38),
+		SurfaceHigh = Color3.fromRGB(35, 47, 55),
+		Border = Color3.fromRGB(91, 114, 125),
+		Accent = Color3.fromRGB(169, 229, 255),
+		AccentSoft = Color3.fromRGB(94, 157, 190),
+		AccentGlow = Color3.fromRGB(210, 246, 255),
+		SelectedTab = Color3.fromRGB(38, 55, 66),
+		ActiveToggle = Color3.fromRGB(169, 229, 255),
+		NotificationAccent = Color3.fromRGB(210, 246, 255),
+		Text = Color3.fromRGB(246, 252, 255),
+		MutedText = Color3.fromRGB(175, 199, 210),
+		DimText = Color3.fromRGB(111, 137, 149),
+		GlassTransparency = 0.045,
+		PanelTransparency = 0.035,
+		ShadowTransparency = 0.12,
+		Hue = 0.54,
+		Sat = 0.34,
+		Value = 1,
+		Description = 'frosted steel surfaces with icy chrome accents'
+	},
+	['Solar Flare'] = {
+		Main = Color3.fromRGB(17, 9, 3),
+		Surface = Color3.fromRGB(31, 18, 8),
+		SurfaceAlt = Color3.fromRGB(50, 31, 12),
+		SurfaceHigh = Color3.fromRGB(74, 48, 19),
+		Border = Color3.fromRGB(139, 95, 42),
+		Accent = Color3.fromRGB(255, 177, 74),
+		AccentSoft = Color3.fromRGB(203, 106, 45),
+		AccentGlow = Color3.fromRGB(255, 210, 110),
+		SelectedTab = Color3.fromRGB(74, 45, 20),
+		ActiveToggle = Color3.fromRGB(255, 177, 74),
+		NotificationAccent = Color3.fromRGB(255, 210, 110),
+		Text = Color3.fromRGB(255, 249, 238),
+		MutedText = Color3.fromRGB(220, 187, 141),
+		DimText = Color3.fromRGB(148, 113, 70),
+		GlassTransparency = 0.052,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.14,
+		Hue = 0.095,
+		Sat = 0.70,
+		Value = 1,
+		Description = 'dark amber console with warm golden flare highlights'
+	},
+	['Crimson Velvet'] = {
+		Main = Color3.fromRGB(16, 5, 7),
+		Surface = Color3.fromRGB(28, 10, 13),
+		SurfaceAlt = Color3.fromRGB(45, 16, 21),
+		SurfaceHigh = Color3.fromRGB(69, 28, 34),
+		Border = Color3.fromRGB(126, 51, 61),
+		Accent = Color3.fromRGB(243, 73, 91),
+		AccentSoft = Color3.fromRGB(166, 40, 56),
+		AccentGlow = Color3.fromRGB(255, 116, 129),
+		SelectedTab = Color3.fromRGB(70, 24, 33),
+		ActiveToggle = Color3.fromRGB(243, 73, 91),
+		NotificationAccent = Color3.fromRGB(255, 116, 129),
+		Text = Color3.fromRGB(255, 245, 246),
+		MutedText = Color3.fromRGB(220, 165, 170),
+		DimText = Color3.fromRGB(151, 92, 99),
+		GlassTransparency = 0.05,
+		PanelTransparency = 0.038,
+		ShadowTransparency = 0.13,
+		Hue = 0.985,
+		Sat = 0.70,
+		Value = 0.95,
+		Description = 'cinematic red velvet with dark premium contrast'
+	},
+	['Cyberpunk Bloom'] = {
+		Main = Color3.fromRGB(8, 5, 16),
+		Surface = Color3.fromRGB(16, 10, 30),
+		SurfaceAlt = Color3.fromRGB(27, 18, 48),
+		SurfaceHigh = Color3.fromRGB(43, 28, 72),
+		Border = Color3.fromRGB(91, 75, 136),
+		Accent = Color3.fromRGB(255, 79, 214),
+		AccentSoft = Color3.fromRGB(65, 211, 255),
+		AccentGlow = Color3.fromRGB(88, 231, 255),
+		SelectedTab = Color3.fromRGB(55, 30, 82),
+		ActiveToggle = Color3.fromRGB(255, 79, 214),
+		NotificationAccent = Color3.fromRGB(65, 211, 255),
+		Text = Color3.fromRGB(255, 244, 253),
+		MutedText = Color3.fromRGB(203, 181, 226),
+		DimText = Color3.fromRGB(135, 113, 166),
+		GlassTransparency = 0.07,
+		PanelTransparency = 0.052,
+		ShadowTransparency = 0.17,
+		Hue = 0.855,
+		Sat = 0.68,
+		Value = 1,
+		Description = 'magenta and cyan bloom for a futuristic neon-luxe look'
+	},
+	['Ocean Glass'] = {
+		Main = Color3.fromRGB(3, 12, 17),
+		Surface = Color3.fromRGB(8, 23, 31),
+		SurfaceAlt = Color3.fromRGB(13, 37, 49),
+		SurfaceHigh = Color3.fromRGB(21, 55, 70),
+		Border = Color3.fromRGB(50, 102, 124),
+		Accent = Color3.fromRGB(65, 206, 234),
+		AccentSoft = Color3.fromRGB(31, 138, 180),
+		AccentGlow = Color3.fromRGB(104, 235, 255),
+		SelectedTab = Color3.fromRGB(18, 62, 79),
+		ActiveToggle = Color3.fromRGB(65, 206, 234),
+		NotificationAccent = Color3.fromRGB(104, 235, 255),
+		Text = Color3.fromRGB(238, 253, 255),
+		MutedText = Color3.fromRGB(143, 197, 211),
+		DimText = Color3.fromRGB(79, 132, 149),
+		GlassTransparency = 0.09,
+		PanelTransparency = 0.06,
+		ShadowTransparency = 0.16,
+		Hue = 0.52,
+		Sat = 0.65,
+		Value = 0.92,
+		Description = 'deep ocean glass with bright aquatic edge lighting'
+	},
+	['Ghost Lavender'] = {
+		Main = Color3.fromRGB(10, 10, 17),
+		Surface = Color3.fromRGB(18, 18, 29),
+		SurfaceAlt = Color3.fromRGB(30, 29, 46),
+		SurfaceHigh = Color3.fromRGB(46, 44, 66),
+		Border = Color3.fromRGB(100, 96, 133),
+		Accent = Color3.fromRGB(203, 178, 255),
+		AccentSoft = Color3.fromRGB(137, 118, 199),
+		AccentGlow = Color3.fromRGB(226, 211, 255),
+		SelectedTab = Color3.fromRGB(55, 51, 78),
+		ActiveToggle = Color3.fromRGB(203, 178, 255),
+		NotificationAccent = Color3.fromRGB(226, 211, 255),
+		Text = Color3.fromRGB(250, 248, 255),
+		MutedText = Color3.fromRGB(199, 194, 222),
+		DimText = Color3.fromRGB(132, 128, 159),
+		GlassTransparency = 0.04,
+		PanelTransparency = 0.035,
+		ShadowTransparency = 0.12,
+		Hue = 0.71,
+		Sat = 0.32,
+		Value = 1,
+		Description = 'quiet lavender chrome with soft ghostly contrast'
+	},
+	['Golden Hour'] = {
+		Main = Color3.fromRGB(18, 13, 5),
+		Surface = Color3.fromRGB(31, 24, 12),
+		SurfaceAlt = Color3.fromRGB(50, 39, 20),
+		SurfaceHigh = Color3.fromRGB(75, 59, 29),
+		Border = Color3.fromRGB(143, 116, 54),
+		Accent = Color3.fromRGB(255, 207, 92),
+		AccentSoft = Color3.fromRGB(199, 141, 45),
+		AccentGlow = Color3.fromRGB(255, 226, 126),
+		SelectedTab = Color3.fromRGB(75, 58, 24),
+		ActiveToggle = Color3.fromRGB(255, 207, 92),
+		NotificationAccent = Color3.fromRGB(255, 226, 126),
+		Text = Color3.fromRGB(255, 251, 237),
+		MutedText = Color3.fromRGB(218, 197, 149),
+		DimText = Color3.fromRGB(147, 128, 79),
+		GlassTransparency = 0.045,
+		PanelTransparency = 0.035,
+		ShadowTransparency = 0.12,
+		Hue = 0.12,
+		Sat = 0.62,
+		Value = 1,
+		Description = 'premium gold-on-black warmth without cheap yellow neon'
+	},
+	['Monochrome Ice'] = {
+		Main = Color3.fromRGB(5, 6, 8),
+		Surface = Color3.fromRGB(11, 12, 15),
+		SurfaceAlt = Color3.fromRGB(20, 22, 27),
+		SurfaceHigh = Color3.fromRGB(32, 35, 42),
+		Border = Color3.fromRGB(82, 88, 99),
+		Accent = Color3.fromRGB(235, 242, 255),
+		AccentSoft = Color3.fromRGB(137, 148, 166),
+		AccentGlow = Color3.fromRGB(255, 255, 255),
+		SelectedTab = Color3.fromRGB(43, 47, 56),
+		ActiveToggle = Color3.fromRGB(235, 242, 255),
+		NotificationAccent = Color3.fromRGB(235, 242, 255),
+		Text = Color3.fromRGB(248, 250, 255),
+		MutedText = Color3.fromRGB(178, 184, 194),
+		DimText = Color3.fromRGB(112, 119, 131),
+		GlassTransparency = 0.025,
+		PanelTransparency = 0.025,
+		ShadowTransparency = 0.10,
+		Hue = 0.61,
+		Sat = 0.06,
+		Value = 1,
+		Description = 'minimal black and ice white for a clean pro tool feel'
+	},
+	['Sakura Noir'] = {
+		Main = Color3.fromRGB(14, 7, 13),
+		Surface = Color3.fromRGB(25, 13, 23),
+		SurfaceAlt = Color3.fromRGB(40, 23, 37),
+		SurfaceHigh = Color3.fromRGB(61, 37, 56),
+		Border = Color3.fromRGB(120, 75, 111),
+		Accent = Color3.fromRGB(255, 154, 220),
+		AccentSoft = Color3.fromRGB(191, 92, 161),
+		AccentGlow = Color3.fromRGB(255, 190, 235),
+		SelectedTab = Color3.fromRGB(67, 37, 62),
+		ActiveToggle = Color3.fromRGB(255, 154, 220),
+		NotificationAccent = Color3.fromRGB(255, 190, 235),
+		Text = Color3.fromRGB(255, 246, 253),
+		MutedText = Color3.fromRGB(219, 179, 210),
+		DimText = Color3.fromRGB(149, 103, 139),
+		GlassTransparency = 0.055,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.14,
+		Hue = 0.89,
+		Sat = 0.42,
+		Value = 1,
+		Description = 'black sakura panels with polished pink accent bloom'
+	},
+	['Void Blue'] = {
+		Main = Color3.fromRGB(3, 5, 12),
+		Surface = Color3.fromRGB(8, 11, 23),
+		SurfaceAlt = Color3.fromRGB(14, 20, 39),
+		SurfaceHigh = Color3.fromRGB(22, 32, 61),
+		Border = Color3.fromRGB(50, 67, 112),
+		Accent = Color3.fromRGB(94, 119, 255),
+		AccentSoft = Color3.fromRGB(58, 72, 183),
+		AccentGlow = Color3.fromRGB(129, 151, 255),
+		SelectedTab = Color3.fromRGB(27, 36, 82),
+		ActiveToggle = Color3.fromRGB(94, 119, 255),
+		NotificationAccent = Color3.fromRGB(129, 151, 255),
+		Text = Color3.fromRGB(241, 244, 255),
+		MutedText = Color3.fromRGB(158, 168, 213),
+		DimText = Color3.fromRGB(95, 104, 153),
+		GlassTransparency = 0.055,
+		PanelTransparency = 0.04,
+		ShadowTransparency = 0.15,
+		Hue = 0.65,
+		Sat = 0.63,
+		Value = 1,
+		Description = 'deep void navy with electric periwinkle controls'
+	},
+	['Peach Cream'] = {
+		Main = Color3.fromRGB(18, 10, 8),
+		Surface = Color3.fromRGB(31, 18, 15),
+		SurfaceAlt = Color3.fromRGB(49, 29, 24),
+		SurfaceHigh = Color3.fromRGB(73, 45, 37),
+		Border = Color3.fromRGB(139, 91, 75),
+		Accent = Color3.fromRGB(255, 169, 134),
+		AccentSoft = Color3.fromRGB(196, 103, 84),
+		AccentGlow = Color3.fromRGB(255, 205, 176),
+		SelectedTab = Color3.fromRGB(74, 44, 36),
+		ActiveToggle = Color3.fromRGB(255, 169, 134),
+		NotificationAccent = Color3.fromRGB(255, 205, 176),
+		Text = Color3.fromRGB(255, 248, 243),
+		MutedText = Color3.fromRGB(219, 185, 169),
+		DimText = Color3.fromRGB(150, 111, 97),
+		GlassTransparency = 0.05,
+		PanelTransparency = 0.038,
+		ShadowTransparency = 0.13,
+		Hue = 0.04,
+		Sat = 0.47,
+		Value = 1,
+		Description = 'warm peach cream accents on deep cocoa glass'
+	},
+	['Grape Soda'] = {
+		Main = Color3.fromRGB(10, 6, 17),
+		Surface = Color3.fromRGB(19, 12, 31),
+		SurfaceAlt = Color3.fromRGB(32, 20, 50),
+		SurfaceHigh = Color3.fromRGB(49, 33, 73),
+		Border = Color3.fromRGB(101, 72, 145),
+		Accent = Color3.fromRGB(151, 103, 255),
+		AccentSoft = Color3.fromRGB(84, 190, 255),
+		AccentGlow = Color3.fromRGB(180, 143, 255),
+		SelectedTab = Color3.fromRGB(50, 34, 81),
+		ActiveToggle = Color3.fromRGB(151, 103, 255),
+		NotificationAccent = Color3.fromRGB(84, 190, 255),
+		Text = Color3.fromRGB(249, 245, 255),
+		MutedText = Color3.fromRGB(194, 176, 223),
+		DimText = Color3.fromRGB(128, 106, 159),
+		GlassTransparency = 0.06,
+		PanelTransparency = 0.045,
+		ShadowTransparency = 0.15,
+		Hue = 0.72,
+		Sat = 0.60,
+		Value = 1,
+		Description = 'playful purple and blue while still feeling polished'
+	},
+	['Cherry Cola'] = {
+		Main = Color3.fromRGB(13, 5, 5),
+		Surface = Color3.fromRGB(23, 10, 10),
+		SurfaceAlt = Color3.fromRGB(38, 18, 17),
+		SurfaceHigh = Color3.fromRGB(58, 31, 29),
+		Border = Color3.fromRGB(105, 64, 56),
+		Accent = Color3.fromRGB(218, 63, 70),
+		AccentSoft = Color3.fromRGB(132, 77, 48),
+		AccentGlow = Color3.fromRGB(255, 119, 116),
+		SelectedTab = Color3.fromRGB(60, 29, 28),
+		ActiveToggle = Color3.fromRGB(218, 63, 70),
+		NotificationAccent = Color3.fromRGB(255, 119, 116),
+		Text = Color3.fromRGB(255, 246, 244),
+		MutedText = Color3.fromRGB(207, 163, 154),
+		DimText = Color3.fromRGB(139, 99, 91),
+		GlassTransparency = 0.045,
+		PanelTransparency = 0.035,
+		ShadowTransparency = 0.12,
+		Hue = 0.99,
+		Sat = 0.64,
+		Value = 0.86,
+		Description = 'dark cherry red with cola-toned premium depth'
+	},
+	['Rainbow'] = {
+		Main = Color3.fromRGB(5, 6, 10),
+		Surface = Color3.fromRGB(10, 12, 18),
+		SurfaceAlt = Color3.fromRGB(18, 21, 31),
+		SurfaceHigh = Color3.fromRGB(28, 31, 47),
+		Border = Color3.fromRGB(80, 88, 119),
+		Accent = Color3.fromRGB(255, 92, 183),
+		AccentSoft = Color3.fromRGB(85, 188, 255),
+		AccentGlow = Color3.fromRGB(116, 255, 214),
+		SelectedTab = Color3.fromRGB(37, 29, 60),
+		ActiveToggle = Color3.fromRGB(255, 92, 183),
+		NotificationAccent = Color3.fromRGB(255, 92, 183),
+		Text = Color3.fromRGB(248, 250, 255),
+		MutedText = Color3.fromRGB(177, 185, 210),
+		DimText = Color3.fromRGB(111, 119, 151),
+		GlassTransparency = 0.065,
+		PanelTransparency = 0.052,
+		ShadowTransparency = 0.15,
+		Hue = 0.92,
+		Sat = 0.74,
+		Value = 0.96,
+		IsRainbow = true,
+		Description = 'animated spectrum accents on a dark premium glass shell'
 	},
 	['Jade Glass'] = {
 		Main = Color3.fromRGB(3, 10, 10),
@@ -281,7 +703,7 @@ local themePresets = {
 	}
 }
 
-local themePresetNames = {'Emerald Noir', 'Jade Glass', 'Obsidian Mint', 'Viridian Luxe', 'Toxic Luxury', 'Cyber Forest', 'Beta Aurora', 'Midnight Terminal'}
+local themePresetNames = {'Emerald Noir', 'Cotton Candy', 'Sapphire Night', 'Royal Amethyst', 'Rose Quartz', 'Arctic Chrome', 'Solar Flare', 'Crimson Velvet', 'Cyberpunk Bloom', 'Ocean Glass', 'Ghost Lavender', 'Golden Hour', 'Monochrome Ice', 'Sakura Noir', 'Void Blue', 'Peach Cream', 'Grape Soda', 'Cherry Cola', 'Rainbow', 'Jade Glass', 'Obsidian Mint', 'Viridian Luxe', 'Toxic Luxury', 'Cyber Forest', 'Beta Aurora', 'Midnight Terminal'}
 
 local function applyThemeToPalette(presetName)
 	local preset = themePresets[presetName] or themePresets['Emerald Noir']
@@ -296,6 +718,8 @@ local function applyThemeToPalette(presetName)
 	uipallet.ActiveToggle = preset.ActiveToggle or preset.Accent or uipallet.ActiveToggle
 	uipallet.NotificationAccent = preset.NotificationAccent or preset.Accent or uipallet.NotificationAccent
 	mainapi.ThemePreset = presetName
+	mainapi.RainbowTheme = preset.IsRainbow == true
+	mainapi.GUIColor.Rainbow = mainapi.RainbowTheme
 	mainapi.GUIColor.Hue = preset.Hue or mainapi.GUIColor.Hue
 	mainapi.GUIColor.Sat = preset.Sat or mainapi.GUIColor.Sat
 	mainapi.GUIColor.Value = preset.Value or mainapi.GUIColor.Value
@@ -309,6 +733,15 @@ pcall(function()
 	end
 end)
 applyThemeToPalette(mainapi.ThemePreset)
+
+local function isThemePreviewObject(obj)
+	local parent = obj
+	while parent do
+		if parent.Name and tostring(parent.Name):find('ThemeCard') then return true end
+		parent = parent.Parent
+	end
+	return false
+end
 
 local function refreshPremiumTheme()
 	local accent = getAccentColor()
@@ -329,19 +762,61 @@ local function refreshPremiumTheme()
 	end
 	if gui then
 		for _, obj in gui:GetDescendants() do
-			if obj:IsA('UIStroke') then
-				if obj.Color ~= accent then obj.Color = uipallet.Border end
-			elseif obj:IsA('TextLabel') or obj:IsA('TextButton') or obj:IsA('TextBox') then
-				if obj.Name == 'Version' or obj.Name == 'Subtitle' then
-					obj.TextColor3 = uipallet.MutedText
-				elseif obj.TextTransparency < 1 then
-					obj.TextColor3 = uipallet.Text
+			if not isThemePreviewObject(obj) then
+				if obj:IsA('UIStroke') then
+					if obj.Color ~= accent then obj.Color = uipallet.Border end
+				elseif obj:IsA('TextLabel') or obj:IsA('TextButton') or obj:IsA('TextBox') then
+					if obj.Name == 'Version' or obj.Name == 'Subtitle' then
+						obj.TextColor3 = uipallet.MutedText
+					elseif obj.TextTransparency < 1 then
+						obj.TextColor3 = uipallet.Text
+					end
+				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+					if obj.Name:find('Glow') or obj.Name:find('Accent') then obj.ImageColor3 = accent end
+				elseif obj:IsA('Frame') then
+					if obj.Name == 'AccentLine' or obj.Name:find('Accent') or obj.Name == 'Fill' then
+						obj.BackgroundColor3 = accent
+					end
 				end
-			elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
-				if obj.Name:find('Glow') or obj.Name:find('Accent') then obj.ImageColor3 = accent end
-			elseif obj:IsA('Frame') then
-				if obj.Name == 'AccentLine' or obj.Name == 'StatusDot' or obj.Name:find('Accent') or obj.Name == 'Fill' then
-					obj.BackgroundColor3 = accent
+			end
+		end
+	end
+	for _, category in pairs(mainapi.Categories) do
+		if category.Button and category.Button.ApplyState then
+			pcall(function() category.Button.ApplyState(category.Button.Enabled) end)
+		end
+		if category.Object and category.Object:IsA('GuiObject') then
+			pcall(function() category.Object.BackgroundColor3 = color.Light(uipallet.Main, 0.012) end)
+		end
+	end
+	for _, moduleapi in pairs(mainapi.Modules) do
+		if type(moduleapi.ApplyAccessState) == 'function' then
+			pcall(function() moduleapi:ApplyAccessState() end)
+		end
+	end
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			if not isThemePreviewObject(obj) then
+				if obj:IsA('ScrollingFrame') then
+					obj.ScrollBarImageColor3 = uipallet.Accent
+				elseif obj:IsA('UIStroke') and obj.Name ~= 'RainbowManagedStroke' then
+					if obj.Parent and (obj.Parent.Name:find('Pill') or obj.Parent.Name:find('Accent') or obj.Parent.Name:find('Status')) then
+						obj.Color = uipallet.Accent
+					else
+						obj.Color = uipallet.Border
+					end
+				elseif obj:IsA('Frame') then
+					if obj.Name == 'InnerAccentGlow' or obj.Name == 'AccentBar' or obj.Name == 'AccentLine' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
+						obj.BackgroundColor3 = uipallet.Accent
+					elseif obj.Name == 'PremiumMainWindow' then
+						obj.BackgroundColor3 = uipallet.Surface
+					elseif obj.Name == 'Sidebar' or obj.Name == 'Content' then
+						obj.BackgroundColor3 = color.Light(uipallet.Main, obj.Name == 'Sidebar' and 0.015 or 0.012)
+					end
+				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+					if obj.Name:find('Glow') or obj.Name:find('Accent') then
+						obj.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
+					end
 				end
 			end
 		end
@@ -356,7 +831,7 @@ function mainapi:ApplyThemePreset(presetName)
 		if writefile then writefile('vape/SilentwareTheme.txt', tostring(presetName)) end
 	end)
 	if self.CreateNotification then
-		self:CreateNotification('Theme applied', tostring(presetName)..' — '..tostring(preset.Description or 'premium theme'), 3)
+		self:CreateNotification('Theme applied', '', 3)
 	end
 	return preset
 end
@@ -515,6 +990,27 @@ local function addGlow(parent, name, transparency, sizePad)
 	glow.ScaleType = Enum.ScaleType.Stretch
 	glow.ZIndex = math.max((parent.ZIndex or 1) - 1, 0)
 	glow.Parent = parent
+
+	-- If the optional soft glow asset is not present yet, use a code-only glow core.
+	-- This avoids the old stretched blur image that caused ugly transparent square artifacts.
+	if glow.Image == '' then
+		local glowCore = Instance.new('Frame')
+		glowCore.Name = 'AccentGlowCore'
+		glowCore.Size = UDim2.new(1, -math.floor(pad * 0.42), 1, -math.floor(pad * 0.42))
+		glowCore.Position = UDim2.fromOffset(math.floor(pad * 0.21), math.floor(pad * 0.21))
+		glowCore.BackgroundColor3 = uipallet.AccentGlow or uipallet.Accent
+		glowCore.BackgroundTransparency = math.clamp((transparency == nil and 0.72 or transparency) + 0.12, 0, 0.96)
+		glowCore.BorderSizePixel = 0
+		glowCore.ZIndex = glow.ZIndex
+		glowCore.Parent = glow
+		addCorner(glowCore, UDim.new(0, math.max(10, math.floor(pad * 0.22))))
+		local glowStroke = Instance.new('UIStroke')
+		glowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		glowStroke.Color = uipallet.AccentGlow or uipallet.Accent
+		glowStroke.Thickness = 1
+		glowStroke.Transparency = 0.68
+		glowStroke.Parent = glowCore
+	end
 	return glow
 end
 
@@ -531,6 +1027,19 @@ local function addShadow(parent, name, transparency, sizePad, offsetY)
 	shadow.ScaleType = Enum.ScaleType.Stretch
 	shadow.ZIndex = math.max((parent.ZIndex or 1) - 2, 0)
 	shadow.Parent = parent
+
+	if shadow.Image == '' then
+		local shadowCore = Instance.new('Frame')
+		shadowCore.Name = 'ShadowCore'
+		shadowCore.Size = UDim2.new(1, -math.floor(pad * 0.28), 1, -math.floor(pad * 0.28))
+		shadowCore.Position = UDim2.fromOffset(math.floor(pad * 0.14), math.floor(pad * 0.14))
+		shadowCore.BackgroundColor3 = Color3.new(0, 0, 0)
+		shadowCore.BackgroundTransparency = math.clamp(transparency == nil and 0.72 or transparency + 0.16, 0, 0.94)
+		shadowCore.BorderSizePixel = 0
+		shadowCore.ZIndex = shadow.ZIndex
+		shadowCore.Parent = shadow
+		addCorner(shadowCore, UDim.new(0, math.max(12, math.floor(pad * 0.2))))
+	end
 	return shadow
 end
 
@@ -3243,10 +3752,46 @@ task.spawn(function()
 	until mainapi.Loaded == nil
 end)
 
+task.spawn(function()
+	while mainapi.Loaded ~= nil do
+		if mainapi.RainbowTheme then
+			local hue = (tick() * 0.08 * (mainapi.RainbowSpeed and mainapi.RainbowSpeed.Value or 1)) % 1
+			mainapi.GUIColor.Hue = hue
+			mainapi.GUIColor.Sat = 0.72
+			mainapi.GUIColor.Value = 0.98
+			uipallet.Accent = Color3.fromHSV(hue, 0.72, 0.98)
+			uipallet.AccentSoft = Color3.fromHSV((hue + 0.08) % 1, 0.64, 0.78)
+			uipallet.AccentGlow = Color3.fromHSV((hue + 0.12) % 1, 0.58, 1)
+			uipallet.ActiveToggle = uipallet.Accent
+			uipallet.NotificationAccent = uipallet.Accent
+			refreshPremiumTheme()
+		end
+		task.wait(mainapi.RainbowTheme and 0.08 or 0.35)
+	end
+end)
+
 function mainapi:BlurCheck()
+	local enabled = clickgui and clickgui.Visible and self.Blur and self.Blur.Enabled
 	if self.ThreadFix then
 		setthreadidentity(8)
 		runService:SetRobloxGuiFocused((clickgui.Visible or guiService:GetErrorType() ~= Enum.ConnectionError.OK) and self.Blur.Enabled)
+	end
+	pcall(function()
+		if not interfaceBlur then
+			interfaceBlur = Instance.new('BlurEffect')
+			interfaceBlur.Name = 'SilentwareInterfaceBlur'
+			interfaceBlur.Size = 0
+			interfaceBlur.Parent = lightingService
+		end
+		interfaceBlur.Enabled = enabled == true
+		tween:Tween(interfaceBlur, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = enabled and 13 or 0})
+	end)
+	if mainapi.GlassBackdrop then
+		mainapi.GlassBackdrop.Visible = enabled == true
+		tween:Tween(mainapi.GlassBackdrop, uipallet.Tween, {BackgroundTransparency = enabled and 0.68 or 1})
+	end
+	if mainapi.PremiumShell then
+		tween:Tween(mainapi.PremiumShell, uipallet.Tween, {BackgroundTransparency = enabled and math.min((uipallet.GlassTransparency or 0.06) + 0.035, 0.16) or (uipallet.GlassTransparency or 0.06)})
 	end
 end
 
@@ -3269,6 +3814,17 @@ function mainapi:CreateGUI()
 	}
 
 	createStartupLoader()
+
+	local glassBackdrop = Instance.new('Frame')
+	glassBackdrop.Name = 'GlassBackdrop'
+	glassBackdrop.Size = UDim2.fromScale(1, 1)
+	glassBackdrop.BackgroundColor3 = uipallet.Main
+	glassBackdrop.BackgroundTransparency = 1
+	glassBackdrop.BorderSizePixel = 0
+	glassBackdrop.Visible = false
+	glassBackdrop.ZIndex = 0
+	glassBackdrop.Parent = clickgui
+	mainapi.GlassBackdrop = glassBackdrop
 
 	local shell = makePremiumWindowFrame(clickgui, 'PremiumMainWindow', UDim2.fromOffset(842, 602), UDim2.fromScale(0.5, 0.5))
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3322,27 +3878,7 @@ function mainapi:CreateGUI()
 	logo.TextSize = 20
 	logo.FontFace = uipallet.FontSemiBold
 	logo.Parent = topbar
-	local logov4 = Instance.new('Frame')
-	logov4.Name = 'StatusDot'
-	logov4.Size = UDim2.fromOffset(8, 8)
-	logov4.Position = UDim2.fromOffset(123, 11)
-	logov4.BackgroundColor3 = uipallet.Accent
-	logov4.BackgroundTransparency = 0
-	logov4.Parent = logo
-	addCorner(logov4, UDim.new(1, 0))
-	addStroke(logov4, uipallet.Accent, 1, 0.35)
-	local logoGlow = addGlow(logov4, 'LogoGlow', 0.58, 48)
-	logoGlow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
-	task.spawn(function()
-		repeat
-			tween:Tween(logoGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.05})
-			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0})
-			task.wait(0.7)
-			tween:Tween(logoGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.64})
-			tween:Tween(logov4, TweenInfo.new(0.58, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.12})
-			task.wait(0.7)
-		until mainapi.Loaded == nil or not logov4.Parent
-	end)
+
 
 	local subtitle = Instance.new('TextLabel')
 	subtitle.Name = 'Subtitle'
@@ -3359,7 +3895,7 @@ function mainapi:CreateGUI()
 	local tierpill = Instance.new('TextLabel')
 	tierpill.Name = 'AccessTierPill'
 	tierpill.Size = UDim2.fromOffset(92, 22)
-	tierpill.Position = UDim2.fromOffset(174, 18)
+	tierpill.Position = UDim2.fromOffset(132, 18)
 	tierpill.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
 	tierpill.BackgroundTransparency = 0.12
 	tierpill.BorderSizePixel = 0
@@ -4047,7 +4583,7 @@ function mainapi:CreateGUI()
 		back.Parent = settingspane
 		addCorner(settingspane, UDim.new(0, 14))
 		addStroke(settingspane, uipallet.Border, 1, 0.26)
-		addShadow(settingspane, categorysettings.Name..'SettingsShadow', 0.14, 128, 12)
+		-- image shadow removed here to prevent transparent square artifacts around settings panes
 		local paneScale = Instance.new('UIScale')
 		paneScale.Name = 'OpenScale'
 		paneScale.Scale = 1
@@ -4079,6 +4615,56 @@ function mainapi:CreateGUI()
 			end
 		end)
 
+		local function ensureSettingsScrim()
+			if mainapi.SettingsScrim and mainapi.SettingsScrim.Parent then return mainapi.SettingsScrim end
+			local scrim = Instance.new('TextButton')
+			scrim.Name = 'SettingsFocusScrim'
+			scrim.Size = UDim2.new(1, -24, 1, -74)
+			scrim.Position = UDim2.fromOffset(12, 62)
+			scrim.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+			scrim.BackgroundTransparency = 1
+			scrim.AutoButtonColor = false
+			scrim.Text = ''
+			scrim.Visible = false
+			scrim.ZIndex = 30
+			scrim.Parent = shell
+			addCorner(scrim, UDim.new(0, 16))
+			mainapi.SettingsScrim = scrim
+			return scrim
+		end
+
+		local function showSettingsPane()
+			local scrim = ensureSettingsScrim()
+			scrim.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+			scrim.Visible = true
+			tween:Tween(scrim, uipallet.Tween, {BackgroundTransparency = 0.34})
+			settingspane.Visible = true
+			paneScale.Scale = 0.96
+			settingspane.BackgroundColor3 = uipallet.Surface
+			settingspane.BackgroundTransparency = 0.12
+			tween:Tween(paneScale, uipallet.OpenTween, {Scale = 1})
+			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = math.min(uipallet.PanelTransparency or 0.02, 0.035)})
+		end
+
+		local function hideSettingsPane()
+			settingspane.Visible = false
+			local anyOpen = false
+			for _, pane in shell:GetChildren() do
+				if pane ~= settingspane and pane:IsA('GuiObject') and pane.Visible and pane.ZIndex >= 32 then
+					anyOpen = true
+					break
+				end
+			end
+			if mainapi.SettingsScrim and not anyOpen then
+				tween:Tween(mainapi.SettingsScrim, uipallet.Tween, {BackgroundTransparency = 1})
+				task.delay(0.18, function()
+					if mainapi.SettingsScrim and mainapi.SettingsScrim.BackgroundTransparency >= 0.98 then
+						mainapi.SettingsScrim.Visible = false
+					end
+				end)
+			end
+		end
+
 		optionapi.Object = settingspane
 		optionapi.Children = settingschildren
 		optionapi.ListLayout = settingswindowlist
@@ -4095,7 +4681,7 @@ function mainapi:CreateGUI()
 			back.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		end)
 		back.MouseButton1Click:Connect(function()
-			settingspane.Visible = false
+			hideSettingsPane()
 		end)
 		button.MouseEnter:Connect(function()
 			button.TextColor3 = uipallet.Text
@@ -4106,14 +4692,10 @@ function mainapi:CreateGUI()
 			button.BackgroundColor3 = uipallet.SurfaceAlt
 		end)
 		button.MouseButton1Click:Connect(function()
-			settingspane.Visible = true
-			paneScale.Scale = 0.96
-			settingspane.BackgroundTransparency = 0.12
-			tween:Tween(paneScale, uipallet.OpenTween, {Scale = 1})
-			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = 0.02})
+			showSettingsPane()
 		end)
 		close.MouseButton1Click:Connect(function()
-			settingspane.Visible = false
+			hideSettingsPane()
 		end)
 		windowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 			if mainapi.ThreadFix then
@@ -4900,10 +5482,22 @@ function mainapi:CreateCategory(categorysettings)
 					self:Toggle(true)
 					self.Locked = true
 				end
-			elseif not self.Enabled then
+			elseif self.Enabled then
+				modulebutton.TextColor3 = mainapi.GUIColor.Rainbow and Color3.new(0.19, 0.19, 0.19) or mainapi:TextColor(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+				modulebutton.BackgroundColor3 = getAccentColor()
+				moduleAccent.BackgroundTransparency = 0
+				moduleAccent.BackgroundColor3 = getAccentColor()
+				moduleGlow.ImageColor3 = getAccentColor()
+				moduleGlow.ImageTransparency = 0.28
+				if moduleStroke then
+					moduleStroke.Color = getAccentColor()
+					moduleStroke.Transparency = 0.25
+				end
+			else
 				modulebutton.TextColor3 = color.Dark(uipallet.Text, 0.22)
 				modulebutton.BackgroundColor3 = uipallet.SurfaceAlt
 				moduleAccent.BackgroundTransparency = 1
+				moduleGlow.ImageColor3 = getAccentColor()
 				if moduleStroke then
 					moduleStroke.Color = uipallet.Border
 					moduleStroke.Transparency = 0.66
@@ -6387,10 +6981,12 @@ function mainapi:CreateNotification(title, text, duration, type)
 		if self.ThreadFix then
 			setthreadidentity(8)
 		end
+		text = text or ''
+		local hasText = removeTags(text) ~= ''
 		local i = #notifications:GetChildren() + 1
 		local notification = Instance.new('ImageLabel')
 		notification.Name = 'Notification'
-		notification.Size = UDim2.fromOffset(math.max(getfontsize(removeTags(text), 14, uipallet.Font).X + 80, 266), 75)
+		notification.Size = UDim2.fromOffset(math.max(getfontsize(removeTags(hasText and text or title), 14, uipallet.Font).X + 88, 238), hasText and 75 or 58)
 		notification.Position = UDim2.new(1, 0, 1, -(29 + (78 * i)))
 		notification.ZIndex = 5
 		notification.BackgroundTransparency = 1
@@ -6418,7 +7014,7 @@ function mainapi:CreateNotification(title, text, duration, type)
 		local titlelabel = Instance.new('TextLabel')
 		titlelabel.Name = 'Title'
 		titlelabel.Size = UDim2.new(1, -56, 0, 20)
-		titlelabel.Position = UDim2.fromOffset(46, 16)
+		titlelabel.Position = UDim2.fromOffset(46, hasText and 16 or 19)
 		titlelabel.ZIndex = 5
 		titlelabel.BackgroundTransparency = 1
 		titlelabel.Text = "<stroke color='#FFFFFF' joins='round' thickness='0.3' transparency='0.5'>"..title..'</stroke>'
@@ -6429,22 +7025,24 @@ function mainapi:CreateNotification(title, text, duration, type)
 		titlelabel.RichText = true
 		titlelabel.FontFace = uipallet.FontSemiBold
 		titlelabel.Parent = notification
-		local textshadow = titlelabel:Clone()
-		textshadow.Name = 'Text'
-		textshadow.Position = UDim2.fromOffset(47, 44)
-		textshadow.Text = removeTags(text)
-		textshadow.TextColor3 = Color3.new()
-		textshadow.TextTransparency = 0.5
-		textshadow.RichText = false
-		textshadow.FontFace = uipallet.Font
-		textshadow.Parent = notification
-		local textlabel = textshadow:Clone()
-		textlabel.Position = UDim2.fromOffset(-1, -1)
-		textlabel.Text = text
-		textlabel.TextColor3 = uipallet.MutedText
-		textlabel.TextTransparency = 0
-		textlabel.RichText = true
-		textlabel.Parent = textshadow
+		if hasText then
+			local textshadow = titlelabel:Clone()
+			textshadow.Name = 'Text'
+			textshadow.Position = UDim2.fromOffset(47, 44)
+			textshadow.Text = removeTags(text)
+			textshadow.TextColor3 = Color3.new()
+			textshadow.TextTransparency = 0.5
+			textshadow.RichText = false
+			textshadow.FontFace = uipallet.Font
+			textshadow.Parent = notification
+			local textlabel = textshadow:Clone()
+			textlabel.Position = UDim2.fromOffset(-1, -1)
+			textlabel.Text = text
+			textlabel.TextColor3 = uipallet.MutedText
+			textlabel.TextTransparency = 0
+			textlabel.RichText = true
+			textlabel.Parent = textshadow
+		end
 		local progress = Instance.new('Frame')
 		progress.Name = 'Progress'
 		progress.Size = UDim2.new(1, -13, 0, 2)
@@ -6849,6 +7447,7 @@ function mainapi:Uninject()
 		clickgui.Visible = false
 		mainapi:BlurCheck()
 	end
+	pcall(function() if interfaceBlur then interfaceBlur.Enabled = false interfaceBlur.Size = 0 end end)
 	mainapi.gui:ClearAllChildren()
 	mainapi.gui:Destroy()
 	table.clear(mainapi.Libraries)
@@ -7538,71 +8137,10 @@ scaleslider = guipane:CreateSlider({
 	Darker = true,
 	Visible = false
 })
-mainapi.RainbowMode = guipane:CreateDropdown({
-	Name = 'Rainbow Mode',
-	List = {'Normal', 'Gradient', 'Retro'},
-	Tooltip = 'Normal - Smooth color fade\nGradient - Gradient color fade\nRetro - Static color'
-})
-mainapi.RainbowSpeed = guipane:CreateSlider({
-	Name = 'Rainbow speed',
-	Min = 0.1,
-	Max = 10,
-	Decimal = 10,
-	Default = 1,
-	Tooltip = 'Adjusts the speed of rainbow values'
-})
-mainapi.RainbowUpdateSpeed = guipane:CreateSlider({
-	Name = 'Rainbow update rate',
-	Min = 1,
-	Max = 144,
-	Default = 60,
-	Tooltip = 'Adjusts the update rate of rainbow values',
-	Suffix = 'hz'
-})
-guipane:CreateButton({
-	Name = 'Reset GUI positions',
-	Function = function()
-		for _, v in mainapi.Categories do
-			v.Object.Position = UDim2.fromOffset(6, 42)
-		end
-	end,
-	Tooltip = 'This will reset your GUI back to default'
-})
-guipane:CreateButton({
-	Name = 'Sort GUI',
-	Function = function()
-		local priority = {
-			GUICategory = 1,
-			CombatCategory = 2,
-			BlatantCategory = 3,
-			RenderCategory = 4,
-			UtilityCategory = 5,
-			WorldCategory = 6,
-			InventoryCategory = 7,
-			MinigamesCategory = 8,
-			FriendsCategory = 9,
-			ProfilesCategory = 10
-		}
-		local categories = {}
-		for _, v in mainapi.Categories do
-			if v.Type ~= 'Overlay' then
-				table.insert(categories, v)
-			end
-		end
-		table.sort(categories, function(a, b)
-			return (priority[a.Object.Name] or 99) < (priority[b.Object.Name] or 99)
-		end)
-
-		local ind = 0
-		for _, v in categories do
-			if v.Object.Visible then
-				v.Object.Position = UDim2.fromOffset(6 + (ind % 8 * 230), 60 + (ind > 7 and 360 or 0))
-				ind += 1
-			end
-		end
-	end,
-	Tooltip = 'Sorts GUI'
-})
+-- Manual GUI color controls removed: Silentware now uses curated theme presets only.
+mainapi.RainbowMode = mainapi.RainbowMode or {Value = 'Gradient'}
+mainapi.RainbowSpeed = mainapi.RainbowSpeed or {Value = 1}
+mainapi.RainbowUpdateSpeed = mainapi.RainbowUpdateSpeed or {Value = 60}
 
 --[[
 	Notification Settings
@@ -7626,12 +8164,7 @@ mainapi.ToggleNotifications = notifpane:CreateToggle({
 	Darker = true
 })
 
-mainapi.GUIColor = mainapi.Categories.Main:CreateGUISlider({
-	Name = 'GUI Theme',
-	Function = function(h, s, v)
-		mainapi:UpdateGUI(h, s, v, true)
-	end
-})
+-- Manual GUI theme slider removed. Use Theme Settings presets instead.
 mainapi.Categories.Main:CreateBind()
 
 --[[
