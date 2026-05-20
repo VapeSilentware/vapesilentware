@@ -20,6 +20,8 @@ local ACCESS = {
 		standard = 1,
 		premium = 2,
 		beta = 3,
+		dev = 4,
+		developer = 4,
 		admin = 4
 	},
 	DisplayNames = {
@@ -27,7 +29,9 @@ local ACCESS = {
 		standard = 'Standard',
 		premium = 'Premium',
 		beta = 'Beta',
-		admin = 'Admin'
+		dev = 'Dev',
+		developer = 'Dev',
+		admin = 'Dev'
 	},
 	DefaultModuleTiers = {
 		Combat = 'standard',
@@ -126,8 +130,14 @@ local function getKeyFromDisk(path)
 	return res ~= '' and res or nil
 end
 
+local tierAliases = {
+	admin = 'dev',
+	developer = 'dev'
+}
+
 local function normaliseTier(tier)
 	tier = string.lower(tostring(tier or 'free'))
+	tier = tierAliases[tier] or tier
 	if not ACCESS.Levels[tier] then tier = 'free' end
 	return tier, ACCESS.Levels[tier]
 end
@@ -333,28 +343,38 @@ end
 
 function ACCESS:AdminLogin(adminKey)
 	adminKey = tostring(adminKey or '')
-	if adminKey == '' then return false, 'Enter an admin key.' end
+	if adminKey == '' then return false, 'Enter a developer key.' end
 	if shared.SilentwareLocalAdminKey and adminKey == shared.SilentwareLocalAdminKey then
 		self.AdminAuthed = true
+		self.DeveloperAuthed = true
 		self.AdminKey = adminKey
-		return true, 'Admin unlocked locally.'
+		self.Tier, self.Level = normaliseTier('dev')
+		self.Reason = 'Developer unlocked locally.'
+		return true, 'Developer tools enabled.'
 	end
 	if self.Config.AdminEndpoint == '' then
-		return false, 'No admin endpoint is configured.'
+		return false, 'No developer endpoint is configured.'
 	end
 	local response = httpPost(self.Config.AdminEndpoint..'/verify', {adminKey = adminKey, userId = lplr and lplr.UserId or 0})
 	local decoded = decodeJson(response)
 	if decoded and decoded.ok then
 		self.AdminAuthed = true
+		self.DeveloperAuthed = true
 		self.AdminKey = adminKey
-		return true, decoded.message or 'Admin unlocked.'
+		self.Tier, self.Level = normaliseTier('dev')
+		self.Reason = decoded.message or 'Developer unlocked.'
+		return true, decoded.message or 'Developer tools enabled.'
 	end
-	return false, decoded and (decoded.message or decoded.reason) or 'Admin verification failed.'
+	return false, decoded and (decoded.message or decoded.reason) or 'Developer verification failed.'
+end
+
+function ACCESS:DeveloperLogin(developerKey)
+	return self:AdminLogin(developerKey)
 end
 
 function ACCESS:AdminRequest(action, data)
-	if not self.AdminAuthed then return false, 'Admin panel is locked.' end
-	if self.Config.AdminEndpoint == '' then return false, 'No admin endpoint is configured.' end
+	if not (self.AdminAuthed or self.DeveloperAuthed) then return false, 'Developer tools are locked.' end
+	if self.Config.AdminEndpoint == '' then return false, 'No developer endpoint is configured.' end
 
 	data = type(data) == 'table' and data or {}
 	local payload = {
@@ -369,7 +389,7 @@ function ACCESS:AdminRequest(action, data)
 	for key, value in pairs(data) do
 		payload[key] = value
 	end
-	payload.reason = cleanString(payload.reason or payload.note or 'admin action')
+	payload.reason = cleanString(payload.reason or payload.note or 'developer action')
 	payload.note = cleanString(payload.note or payload.reason)
 	if payload.key and not payload.target then payload.target = payload.key end
 	if payload.userId and not payload.target then payload.target = payload.userId end
@@ -377,9 +397,9 @@ function ACCESS:AdminRequest(action, data)
 	local response = httpPost(self.Config.AdminEndpoint, payload, {['Content-Type'] = 'application/json', ['Authorization'] = 'Bearer '..tostring(self.AdminKey or '')})
 	local decoded = decodeJson(response)
 	if decoded and decoded.ok then
-		return true, decoded.message or 'Admin request completed.'
+		return true, decoded.message or 'Developer request completed.', decoded
 	end
-	return false, decoded and (decoded.message or decoded.reason) or 'Admin request failed.'
+	return false, decoded and (decoded.message or decoded.reason) or 'Developer request failed.', decoded
 end
 
 function ACCESS:GrantKey(targetKey, tier, note)
@@ -400,6 +420,50 @@ function ACCESS:SetUserTier(userId, tier, note)
 	tier = normaliseTier(tier)
 	if userId == '' then return false, 'Enter a Roblox user id.' end
 	return self:AdminRequest('setUserTier', {target = userId, userId = userId, robloxUserId = userId, tier = tier, reason = note, note = note})
+end
+
+
+function ACCESS:GenerateLocalKey(tier)
+	tier = normaliseTier(tier)
+	local raw = ''
+	pcall(function()
+		raw = httpService:GenerateGUID(false):gsub('-', ''):upper()
+	end)
+	if raw == '' then
+		math.randomseed(os.clock() * 1000000)
+		for _ = 1, 24 do
+			raw = raw..string.char(math.random(65, 90))
+		end
+	end
+	return 'SW-'..string.upper(tier)..'-'..raw:sub(1, 8)..'-'..raw:sub(9, 16)
+end
+
+function ACCESS:GenerateKey(tier, note)
+	tier = normaliseTier(tier)
+	if tier == 'free' or tier == 'dev' then
+		return false, 'Only standard, premium, or beta keys can be generated.'
+	end
+	local ok, msg, data = self:AdminRequest('generateKey', {tier = tier, reason = note, note = note})
+	if ok and type(data) == 'table' and data.key then
+		return true, tostring(data.key), data
+	end
+	-- Backwards-compatible fallback for older backends: generate the key client-side, then securely grant it through the admin endpoint.
+	local generated = self:GenerateLocalKey(tier)
+	local grantOk, grantMsg = self:GrantKey(generated, tier, note)
+	if grantOk then
+		return true, generated, {message = 'Generated and granted key.'}
+	end
+	return false, msg or grantMsg or 'Generate key failed.'
+end
+
+function ACCESS:GrantUser(userId, tier, note)
+	return self:SetUserTier(userId, tier, note)
+end
+
+function ACCESS:RevokeUser(userId, reason)
+	userId = cleanString(userId)
+	if userId == '' then return false, 'Enter a Roblox user id.' end
+	return self:AdminRequest('revokeUser', {target = userId, userId = userId, robloxUserId = userId, reason = reason, note = reason})
 end
 
 ACCESS:Configure(shared.SilentwareAccessConfig or {})

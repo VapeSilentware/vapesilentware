@@ -26,6 +26,7 @@ local mainapi = {
 	Access = shared.SilentwareAccess,
 	ThemePreset = 'Emerald Noir',
 	SettingsPanes = {},
+	SettingsOpen = false,
 	ThemePreviewCards = {},
 	Windows = {}
 }
@@ -560,7 +561,9 @@ local embeddedThemePresets = {
 		Hue = 0.91,
 		Sat = 0.56,
 		Value = 1,
-		Description = 'static rainbow glass with pink, blue, gold, and violet accents'
+		Description = 'animated rainbow glass with lightweight registered accent updates',
+		IsRainbow = true,
+		DynamicRainbow = true
 	},
 }
 
@@ -667,6 +670,30 @@ local function isSettingsPaneObject(obj)
 		parent = parent.Parent
 	end
 	return false
+end
+
+local function refreshSettingsOpenState(forceState)
+	if forceState ~= nil then
+		mainapi.SettingsOpen = forceState == true
+	else
+		local open = false
+		if gui then
+			for _, obj in gui:GetDescendants() do
+				if obj:IsA('GuiObject') and obj.Visible then
+					local role = obj:GetAttribute('SilentwareRole')
+					if role == 'SettingsRoot' or role == 'SettingsPane' then
+						open = true
+						break
+					end
+				end
+			end
+		end
+		mainapi.SettingsOpen = open
+	end
+	if mainapi.SettingsOpen and tooltip then
+		tooltip.Visible = false
+	end
+	return mainapi.SettingsOpen
 end
 
 local function getSilentwareRole(obj)
@@ -800,51 +827,182 @@ local function repaintEveryControl()
 	end
 end
 
-local function makeRainbowSequence()
+local function makeRainbowSequence(shift)
+	shift = shift or 0
+	local function c(pos)
+		return Color3.fromHSV((pos + shift) % 1, 0.72, 1)
+	end
 	return ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 82, 153)),
-		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(255, 183, 77)),
-		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(255, 239, 96)),
-		ColorSequenceKeypoint.new(0.52, Color3.fromRGB(77, 238, 166)),
-		ColorSequenceKeypoint.new(0.70, Color3.fromRGB(91, 173, 255)),
-		ColorSequenceKeypoint.new(0.86, Color3.fromRGB(183, 111, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 82, 153))
+		ColorSequenceKeypoint.new(0.00, c(0.92)),
+		ColorSequenceKeypoint.new(0.16, c(0.03)),
+		ColorSequenceKeypoint.new(0.32, c(0.13)),
+		ColorSequenceKeypoint.new(0.50, c(0.36)),
+		ColorSequenceKeypoint.new(0.68, c(0.55)),
+		ColorSequenceKeypoint.new(0.84, c(0.72)),
+		ColorSequenceKeypoint.new(1.00, c(0.92))
 	})
 end
 
-local function setupRainbowDecor()
-	mainapi.RainbowDecor = mainapi.RainbowDecor or {}
-	local function ensureGradient(obj, name)
-		if not obj then return end
-		local gradient = obj:FindFirstChild(name)
-		if not gradient then
-			gradient = Instance.new('UIGradient')
-			gradient.Name = name
-			gradient.Parent = obj
-		end
-		gradient.Color = makeRainbowSequence()
-		gradient.Rotation = gradient.Rotation or 0
-		table.insert(mainapi.RainbowDecor, gradient)
-		return gradient
+local rainbowRuntime = {
+	Gradients = {},
+	Targets = {},
+	LastRebuild = 0,
+	LastStep = 0,
+	StepRate = 1 / 18,
+	RebuildRate = 2.75,
+	Hue = 0
+}
+
+local function rainbowColor(offset, sat, val)
+	return Color3.fromHSV((rainbowRuntime.Hue + (offset or 0)) % 1, sat or 0.72, val or 1)
+end
+
+local function safeAddRainbowGradient(obj, name, offset, rotationSpeed)
+	if not obj or not obj.Parent or not obj:IsA('GuiObject') then return end
+	local gradient = obj:FindFirstChild(name)
+	if not gradient then
+		gradient = Instance.new('UIGradient')
+		gradient.Name = name
+		gradient.Parent = obj
 	end
-	table.clear(mainapi.RainbowDecor)
-	ensureGradient(mainapi.PremiumShell, 'RainbowShellGradient')
-	ensureGradient(mainapi.PremiumTitle, 'RainbowTitleGradient')
-	ensureGradient(mainapi.AccessTierPill, 'RainbowTierGradient')
-	ensureGradient(mainapi.PremiumGlow, 'RainbowGlowGradient')
+	gradient.Color = makeRainbowSequence(offset or 0)
+	gradient.Enabled = true
+	gradient.Rotation = gradient.Rotation or 0
+	table.insert(rainbowRuntime.Gradients, {
+		Object = gradient,
+		Offset = offset or 0,
+		RotationSpeed = rotationSpeed or 11
+	})
+	return gradient
+end
+
+local function safeAddRainbowTarget(obj, property, offset, sat, val)
+	if not obj or not obj.Parent or not property then return end
+	table.insert(rainbowRuntime.Targets, {
+		Object = obj,
+		Property = property,
+		Offset = offset or 0,
+		Sat = sat or 0.72,
+		Value = val or 1
+	})
 end
 
 local function clearRainbowDecor()
+	for _, entry in rainbowRuntime.Gradients do
+		local gradient = entry.Object
+		if gradient and gradient.Parent and gradient.Name and tostring(gradient.Name):find('Rainbow') then
+			pcall(function() gradient:Destroy() end)
+		end
+	end
 	if gui then
 		for _, obj in gui:GetDescendants() do
 			if obj:IsA('UIGradient') and tostring(obj.Name):find('Rainbow') then
-				obj:Destroy()
+				pcall(function() obj:Destroy() end)
 			end
 		end
 	end
-	mainapi.RainbowDecor = {}
+	rainbowRuntime.Gradients = {}
+	rainbowRuntime.Targets = {}
+	mainapi.RainbowDecor = rainbowRuntime.Gradients
 end
 
+local function setupRainbowDecor(force)
+	if not mainapi.RainbowTheme then return end
+	local now = os.clock()
+	if not force and now - (rainbowRuntime.LastRebuild or 0) < rainbowRuntime.RebuildRate then return end
+	rainbowRuntime.LastRebuild = now
+	rainbowRuntime.Gradients = {}
+	rainbowRuntime.Targets = {}
+	mainapi.RainbowDecor = rainbowRuntime.Gradients
+
+	-- Borrowed structure from VWRewrite: one global updater touches only registered rainbow UI,
+	-- instead of repainting every descendant or running a tween on every control.
+	safeAddRainbowGradient(mainapi.PremiumShell, 'SilentwareRainbowShell', 0.00, 7)
+	safeAddRainbowGradient(mainapi.PremiumContent, 'SilentwareRainbowContent', 0.12, 5)
+	safeAddRainbowGradient(mainapi.PremiumTitle, 'SilentwareRainbowTitle', 0.26, 9)
+	safeAddRainbowGradient(mainapi.AccessTierPill, 'SilentwareRainbowTier', 0.44, 10)
+	if mainapi.PremiumGlow then safeAddRainbowTarget(mainapi.PremiumGlow, 'ImageColor3', 0.60, 0.68, 1) end
+	if mainapi.PremiumTitleGlow then safeAddRainbowTarget(mainapi.PremiumTitleGlow, 'TextColor3', 0.38, 0.66, 1) end
+	if mainapi.AccessTierPill then
+		safeAddRainbowTarget(mainapi.AccessTierPill, 'TextColor3', 0.54, 0.58, 1)
+		safeAddRainbowTarget(mainapi.AccessTierPill, 'BackgroundColor3', 0.64, 0.42, 0.26)
+	end
+
+	if gui then
+		local count = 0
+		for _, obj in gui:GetDescendants() do
+			if count > 260 then break end
+			if not isThemePreviewObject(obj) then
+				local role = getSilentwareRole(obj)
+				local offset = (count % 18) * 0.021
+				if obj:IsA('Frame') then
+					if obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
+						safeAddRainbowTarget(obj, 'BackgroundColor3', offset)
+						count += 1
+					end
+				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+					if obj.Name == 'Dots' or role == 'ModuleDots' or obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or tostring(obj.Name):find('Glow') or tostring(obj.Name):find('Accent') then
+						safeAddRainbowTarget(obj, 'ImageColor3', offset)
+						count += 1
+					end
+				elseif obj:IsA('TextLabel') then
+					if role == 'TierLock' or obj.Name == 'AccessTierPill' then
+						safeAddRainbowTarget(obj, 'TextColor3', offset)
+						if obj.BackgroundTransparency < 1 then safeAddRainbowTarget(obj, 'BackgroundColor3', offset + 0.08, 0.40, 0.28) end
+						count += 1
+					end
+				elseif obj:IsA('UIStroke') then
+					local parentRole = getSilentwareRole(obj.Parent)
+					if parentRole == 'TierLock' or obj.Name == 'GlowStroke' or (obj.Parent and (tostring(obj.Parent.Name):find('Pill') or tostring(obj.Parent.Name):find('Accent') or tostring(obj.Parent.Name):find('Tier'))) then
+						safeAddRainbowTarget(obj, 'Color', offset)
+						count += 1
+					end
+				end
+			end
+		end
+	end
+end
+
+local function refreshRainbowThemeFast(force)
+	if not mainapi.RainbowTheme then return end
+	local now = os.clock()
+	if not force and now - (rainbowRuntime.LastStep or 0) < rainbowRuntime.StepRate then return end
+	rainbowRuntime.LastStep = now
+	rainbowRuntime.Hue = (now * 0.075) % 1
+	mainapi.GUIColor.Hue = rainbowRuntime.Hue
+	mainapi.GUIColor.Sat = 0.72
+	mainapi.GUIColor.Value = 1
+	uipallet.Accent = rainbowColor(0, 0.72, 1)
+	uipallet.AccentGlow = rainbowColor(0.08, 0.64, 1)
+	uipallet.ActiveToggle = rainbowColor(0.16, 0.72, 1)
+	uipallet.NotificationAccent = rainbowColor(0.32, 0.72, 1)
+
+	if now - (rainbowRuntime.LastRebuild or 0) > rainbowRuntime.RebuildRate then
+		setupRainbowDecor(true)
+	end
+
+	for i = #rainbowRuntime.Gradients, 1, -1 do
+		local entry = rainbowRuntime.Gradients[i]
+		local gradient = entry.Object
+		if not gradient or not gradient.Parent then
+			table.remove(rainbowRuntime.Gradients, i)
+		else
+			gradient.Rotation = ((now * (entry.RotationSpeed or 10)) + ((entry.Offset or 0) * 360)) % 360
+		end
+	end
+
+	for i = #rainbowRuntime.Targets, 1, -1 do
+		local entry = rainbowRuntime.Targets[i]
+		local obj = entry.Object
+		if not obj or not obj.Parent then
+			table.remove(rainbowRuntime.Targets, i)
+		else
+			pcall(function()
+				obj[entry.Property] = rainbowColor(entry.Offset, entry.Sat, entry.Value)
+			end)
+		end
+	end
+end
 
 local function repaintThemePreviewCards()
 	if not mainapi.ThemePreviewCards then return end
@@ -986,24 +1144,24 @@ local function refreshPremiumTheme()
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 end
 
-local function refreshRainbowThemeFast()
-	return
-end
 
 function mainapi:ApplyThemePreset(presetName)
 	local preset = applyThemeToPalette(presetName)
 	if mainapi.RainbowTheme then
-		setupRainbowDecor()
+		setupRainbowDecor(true)
+		refreshRainbowThemeFast(true)
 	else
 		clearRainbowDecor()
 	end
 	refreshPremiumTheme()
+	if mainapi.RainbowTheme then refreshRainbowThemeFast(true) end
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 	for _, pane in pairs(mainapi.SettingsPanes or {}) do
 		if type(pane.ApplyTheme) == 'function' then pcall(function() pane:ApplyTheme() end) end
 	end
 	pcall(function() mainapi:RefreshAccessLocks() end)
 	repaintEveryControl()
+	if mainapi.RainbowTheme then refreshRainbowThemeFast(true) end
 	repaintThemePreviewCards()
 	task.defer(function()
 		for _, pane in pairs(mainapi.SettingsPanes or {}) do
@@ -1011,6 +1169,7 @@ function mainapi:ApplyThemePreset(presetName)
 		end
 		pcall(function() mainapi:RefreshAccessLocks() end)
 		repaintEveryControl()
+		if mainapi.RainbowTheme then refreshRainbowThemeFast(true) end
 		repaintThemePreviewCards()
 	end)
 	pcall(function()
@@ -1516,7 +1675,15 @@ end
 local function addTooltip(gui, text)
 	if not text then return end
 
+	local function shouldSuppressTooltip()
+		return mainapi.SettingsOpen == true and not isSettingsPaneObject(gui)
+	end
+
 	local function tooltipMoved(x, y)
+		if shouldSuppressTooltip() then
+			tooltip.Visible = false
+			return
+		end
 		local right = x + 16 + tooltip.Size.X.Offset > (scale.Scale * 1920)
 		tooltip.Position = UDim2.fromOffset(
 			(right and x - (tooltip.Size.X.Offset * scale.Scale) - 16 or x + 16) / scale.Scale,
@@ -1526,6 +1693,10 @@ local function addTooltip(gui, text)
 	end
 
 	gui.MouseEnter:Connect(function(x, y)
+		if shouldSuppressTooltip() then
+			tooltip.Visible = false
+			return
+		end
 		local tooltipSize = getfontsize(text, tooltip.TextSize, uipallet.Font)
 		tooltip.Size = UDim2.fromOffset(tooltipSize.X + 10, tooltipSize.Y + 10)
 		tooltip.Text = text
@@ -3927,18 +4098,18 @@ mainapi.Components = setmetatable(components, {
 
 task.spawn(function()
 	repeat
-		-- Premium themes are preset-only now. Keep the legacy rainbow table dormant so old configs cannot lag the game.
+		-- Legacy per-option rainbow is kept dormant; the Rainbow theme uses a lightweight registered updater below.
 		if mainapi.GUIColor then mainapi.GUIColor.Rainbow = false end
-		task.wait(2)
+		task.wait(3)
 	until mainapi.Loaded == nil
 end)
 
 task.spawn(function()
 	while mainapi.Loaded ~= nil do
 		if mainapi.RainbowTheme then
-			refreshRainbowThemeFast()
+			refreshRainbowThemeFast(false)
 		end
-		task.wait(mainapi.RainbowTheme and 0.85 or 1.25)
+		task.wait(mainapi.RainbowTheme and rainbowRuntime.StepRate or 1.25)
 	end
 end)
 
@@ -4831,6 +5002,7 @@ function mainapi:CreateGUI()
 		end
 
 		local function showSettingsPane()
+			refreshSettingsOpenState(true)
 			local scrim = ensureSettingsScrim()
 			scrim.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
 			scrim.Visible = true
@@ -4849,6 +5021,7 @@ function mainapi:CreateGUI()
 
 		local function hideSettingsPane()
 			settingspane.Visible = false
+			task.defer(refreshSettingsOpenState)
 			local anyOpen = false
 			for _, pane in shell:GetChildren() do
 				if pane ~= settingspane and pane:IsA('GuiObject') and pane.Visible and pane.ZIndex >= 32 then
@@ -5406,9 +5579,11 @@ function mainapi:CreateGUI()
 	end)
 	back.MouseButton1Click:Connect(function()
 		settingspane.Visible = false
+		task.defer(refreshSettingsOpenState)
 	end)
 	close.MouseButton1Click:Connect(function()
 		settingspane.Visible = false
+		task.defer(refreshSettingsOpenState)
 	end)
 	settingsbutton.MouseEnter:Connect(function()
 		settingsicon.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
@@ -5417,6 +5592,7 @@ function mainapi:CreateGUI()
 		settingsicon.ImageColor3 = uipallet.Accent
 	end)
 	settingsbutton.MouseButton1Click:Connect(function()
+		refreshSettingsOpenState(true)
 		settingspane.Visible = true
 		settingsScale.Scale = 0.96
 		settingspane.BackgroundTransparency = 0.12
@@ -8179,14 +8355,17 @@ for index, themeName in themePresetNames do
 end
 
 --[[
-	Access / Admin Settings
+	Access Settings
 ]]
 
 local accesspane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Access'})
 local tierText
+local developerControls = {}
 local function getAccessDisplay(currentAccess)
 	currentAccess = currentAccess or shared.SilentwareAccess or access
-	return tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier or 'Free')
+	local tier = tostring(currentAccess.Tier or 'free'):lower()
+	if tier == 'admin' or tier == 'developer' then tier = 'dev' end
+	return tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[tier]) or currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier] or tier or 'Free')
 end
 local function updateAccessVisuals(currentAccess)
 	currentAccess = currentAccess or shared.SilentwareAccess or access
@@ -8194,16 +8373,28 @@ local function updateAccessVisuals(currentAccess)
 		mainapi.AccessTierPill.Text = getAccessDisplay(currentAccess)
 	end
 	if tierText and tierText.Object then
-		local label = tierText.Object:FindFirstChildWhichIsA('Frame') and tierText.Object:FindFirstChildWhichIsA('Frame'):FindFirstChildWhichIsA('TextLabel')
+		local frame = tierText.Object:FindFirstChildWhichIsA('Frame')
+		local label = frame and frame:FindFirstChildWhichIsA('TextLabel')
 		if label then label.Text = 'Current tier: '..getAccessDisplay(currentAccess) end
 	end
 	mainapi:RefreshAccessLocks()
 	repaintEveryControl()
 end
+local function setDeveloperToolsVisible(state)
+	for _, control in developerControls do
+		if control and control.Object then
+			control.Object.Visible = state == true
+		elseif typeof(control) == 'Instance' and control:IsA('GuiObject') then
+			control.Visible = state == true
+		end
+	end
+	if state then repaintEveryControl() end
+end
+
 tierText = accesspane:CreateButton({
 	Name = 'Current tier: '..getAccessDisplay(access),
 	Function = function()
-		mainapi:CreateNotification('Access tier', 'Current tier: '..tostring((shared.SilentwareAccess and shared.SilentwareAccess.Tier) or 'free'), 4)
+		mainapi:CreateNotification('Access tier', 'Current tier: '..getAccessDisplay(shared.SilentwareAccess or access), 4)
 	end,
 	Tooltip = 'Shows your active Silentware access tier.'
 })
@@ -8217,77 +8408,108 @@ end)
 local keybox = accesspane:CreateTextBox({
 	Name = 'Access key',
 	Default = storedKey or '',
-	Placeholder = 'Paste whitelist or admin key',
-	Tooltip = 'Whitelist keys are stored locally and checked automatically on startup. Admin keys only unlock admin tools.'
+	Placeholder = 'Paste whitelist or developer key',
+	Tooltip = 'Whitelist keys are stored locally and checked automatically on startup. Developer keys unlock developer tools.'
 })
-local adminControls = {}
-local function setAdminToolsVisible(state)
-	for _, control in adminControls do
-		if control and control.Object then
-			control.Object.Visible = state == true
-		elseif typeof(control) == 'Instance' and control:IsA('GuiObject') then
-			control.Visible = state == true
-		end
-	end
-	if state then repaintEveryControl() end
-end
+
 local targetkey = accesspane:CreateTextBox({
-	Name = 'Target key/user',
-	Placeholder = 'Key or Roblox user id',
-	Tooltip = 'Key or user id to grant/revoke from the backend.'
+	Name = 'Target license key',
+	Placeholder = 'Existing key or generated key',
+	Tooltip = 'License key to grant or revoke from the backend.'
 })
-table.insert(adminControls, targetkey)
+table.insert(developerControls, targetkey)
+local targetuserid = accesspane:CreateTextBox({
+	Name = 'Target user id',
+	Placeholder = 'Roblox user id',
+	Tooltip = 'Roblox user id to directly grant a tier to.'
+})
+table.insert(developerControls, targetuserid)
 local targettier = accesspane:CreateDropdown({
 	Name = 'Target tier',
-	List = {'free', 'standard', 'premium', 'beta'},
-	Tooltip = 'Tier to grant through the admin backend.'
+	List = {'standard', 'premium', 'beta'},
+	Tooltip = 'Developer grants can create standard, premium, or beta access. Dev keys are never generated here.'
 })
-table.insert(adminControls, targettier)
-local adminnote = accesspane:CreateTextBox({
-	Name = 'Admin note',
+table.insert(developerControls, targettier)
+local developernote = accesspane:CreateTextBox({
+	Name = 'Developer note',
 	Placeholder = 'Optional note / reason',
-	Tooltip = 'Sent to the admin endpoint with grant/revoke requests.'
+	Tooltip = 'Sent to the developer backend with grant/revoke requests.'
 })
-table.insert(adminControls, adminnote)
-local grantButton = accesspane:CreateButton({
-	Name = 'Grant whitelist',
+table.insert(developerControls, developernote)
+local generateKeyButton = accesspane:CreateButton({
+	Name = 'Generate license key',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, generated = false, 'Access library unavailable.'
+		if type(currentAccess) == 'table' and type(currentAccess.GenerateKey) == 'function' then
+			ok, generated = currentAccess:GenerateKey(targettier.Value, developernote.Value)
+		end
+		if ok then
+			if targetkey and targetkey.SetValue then pcall(function() targetkey:SetValue(generated) end) end
+			mainapi:CreateNotification('Key generated', tostring(generated), 10, 'info')
+		else
+			mainapi:CreateNotification('Generate failed', tostring(generated), 7, 'alert')
+		end
+	end,
+	Tooltip = 'Generates and grants a new standard, premium, or beta license key.'
+})
+table.insert(developerControls, generateKeyButton)
+local grantKeyButton = accesspane:CreateButton({
+	Name = 'Grant license key',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
 		local ok, msg = false, 'Access library unavailable.'
 		if type(currentAccess) == 'table' and type(currentAccess.GrantKey) == 'function' then
-			ok, msg = currentAccess:GrantKey(targetkey.Value, targettier.Value, adminnote.Value)
+			ok, msg = currentAccess:GrantKey(targetkey.Value, targettier.Value, developernote.Value)
 		end
-		mainapi:CreateNotification(ok and 'Whitelist granted' or 'Grant failed', tostring(msg), 7, ok and 'info' or 'alert')
+		mainapi:CreateNotification(ok and 'Key granted' or 'Grant failed', tostring(msg), 7, ok and 'info' or 'alert')
 	end,
-	Tooltip = 'Sends a grant request to your admin backend.'
+	Tooltip = 'Grants the selected tier to the target license key.'
 })
-table.insert(adminControls, grantButton)
-local revokeButton = accesspane:CreateButton({
-	Name = 'Revoke whitelist',
+table.insert(developerControls, grantKeyButton)
+local revokeKeyButton = accesspane:CreateButton({
+	Name = 'Revoke license key',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
 		local ok, msg = false, 'Access library unavailable.'
 		if type(currentAccess) == 'table' and type(currentAccess.RevokeKey) == 'function' then
-			ok, msg = currentAccess:RevokeKey(targetkey.Value, adminnote.Value)
+			ok, msg = currentAccess:RevokeKey(targetkey.Value, developernote.Value)
 		end
-		mainapi:CreateNotification(ok and 'Whitelist revoked' or 'Revoke failed', tostring(msg), 7, ok and 'info' or 'alert')
+		mainapi:CreateNotification(ok and 'Key revoked' or 'Revoke failed', tostring(msg), 7, ok and 'info' or 'alert')
 	end,
-	Tooltip = 'Sends a revoke request to your admin backend.'
+	Tooltip = 'Revokes a license key through your backend.'
 })
-table.insert(adminControls, revokeButton)
-local setUserButton = accesspane:CreateButton({
-	Name = 'Set user tier',
+table.insert(developerControls, revokeKeyButton)
+local grantUserButton = accesspane:CreateButton({
+	Name = 'Grant user tier',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
 		local ok, msg = false, 'Access library unavailable.'
-		if type(currentAccess) == 'table' and type(currentAccess.SetUserTier) == 'function' then
-			ok, msg = currentAccess:SetUserTier(targetkey.Value, targettier.Value, adminnote.Value)
+		if type(currentAccess) == 'table' and type(currentAccess.GrantUser) == 'function' then
+			ok, msg = currentAccess:GrantUser(targetuserid.Value, targettier.Value, developernote.Value)
+		elseif type(currentAccess) == 'table' and type(currentAccess.SetUserTier) == 'function' then
+			ok, msg = currentAccess:SetUserTier(targetuserid.Value, targettier.Value, developernote.Value)
 		end
-		mainapi:CreateNotification(ok and 'User tier updated' or 'User tier failed', tostring(msg), 7, ok and 'info' or 'alert')
+		mainapi:CreateNotification(ok and 'User tier granted' or 'User grant failed', tostring(msg), 7, ok and 'info' or 'alert')
 	end,
-	Tooltip = 'Sends a Roblox user-id tier update to your admin backend.'
+	Tooltip = 'Directly grants a Roblox user id the selected tier.'
 })
-table.insert(adminControls, setUserButton)
+table.insert(developerControls, grantUserButton)
+local revokeUserButton = accesspane:CreateButton({
+	Name = 'Revoke user tier',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local ok, msg = false, 'Access library unavailable.'
+		if type(currentAccess) == 'table' and type(currentAccess.RevokeUser) == 'function' then
+			ok, msg = currentAccess:RevokeUser(targetuserid.Value, developernote.Value)
+		else
+			ok, msg = false, 'Revoke user is unavailable in this access library.'
+		end
+		mainapi:CreateNotification(ok and 'User revoked' or 'User revoke failed', tostring(msg), 7, ok and 'info' or 'alert')
+	end,
+	Tooltip = 'Revokes direct user tier access.'
+})
+table.insert(developerControls, revokeUserButton)
 local webhookButton = accesspane:CreateButton({
 	Name = 'Send test webhook',
 	Function = function()
@@ -8300,8 +8522,9 @@ local webhookButton = accesspane:CreateButton({
 	end,
 	Tooltip = 'Sends a Discord webhook test if configured. Keep the URL server-side when possible.'
 })
-table.insert(adminControls, webhookButton)
-setAdminToolsVisible((shared.SilentwareAccess or access).AdminAuthed == true)
+table.insert(developerControls, webhookButton)
+setDeveloperToolsVisible((shared.SilentwareAccess or access).DeveloperAuthed == true or (shared.SilentwareAccess or access).AdminAuthed == true)
+
 accesspane:CreateButton({
 	Name = 'Check access key',
 	Function = function()
@@ -8309,37 +8532,43 @@ accesspane:CreateButton({
 			local currentAccess = shared.SilentwareAccess or access
 			local entered = tostring(keybox.Value or ''):gsub('^%s+', ''):gsub('%s+$', '')
 			if entered == '' then
-				mainapi:CreateNotification('Access failed', 'Enter a whitelist or admin key.', 5, 'warning')
+				mainapi:CreateNotification('Access failed', 'Enter a whitelist or developer key.', 5, 'warning')
 				return
 			end
 
-			if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
-				local adminOk = false
-				local okAdmin = pcall(function()
-					local result = currentAccess:AdminLogin(entered)
-					adminOk = result == true
-				end)
-				if okAdmin and adminOk then
-					setAdminToolsVisible(true)
-					mainapi:CreateNotification('Admin unlocked', 'Admin tools enabled.', 5, 'info')
+			if type(currentAccess) == 'table' and type(currentAccess.DeveloperLogin) == 'function' then
+				local devOk, devMsg = currentAccess:DeveloperLogin(entered)
+				if devOk then
+					mainapi.Access = currentAccess
+					setDeveloperToolsVisible(true)
+					updateAccessVisuals(currentAccess)
+					mainapi:CreateNotification('Developer unlocked', tostring(devMsg or 'Developer tools enabled.'), 5, 'info')
+					repaintEveryControl()
+					return
+				end
+			elseif type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
+				local adminOk, adminMsg = currentAccess:AdminLogin(entered)
+				if adminOk then
+					mainapi.Access = currentAccess
+					setDeveloperToolsVisible(true)
+					updateAccessVisuals(currentAccess)
+					mainapi:CreateNotification('Developer unlocked', tostring(adminMsg or 'Developer tools enabled.'), 5, 'info')
 					repaintEveryControl()
 					return
 				end
 			end
 
 			if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
-				local ok, result = pcall(function()
-					return currentAccess:CheckKey(entered)
-				end)
-				if ok then
-					mainapi.Access = currentAccess
-					setAdminToolsVisible(false)
-					updateAccessVisuals(currentAccess)
-					mainapi:CreateNotification('Access updated', 'Tier: '..getAccessDisplay(currentAccess), 5)
-					repaintEveryControl()
+				local result = currentAccess:CheckKey(entered)
+				mainapi.Access = currentAccess
+				setDeveloperToolsVisible(currentAccess.DeveloperAuthed == true or currentAccess.AdminAuthed == true)
+				updateAccessVisuals(currentAccess)
+				if currentAccess.Blocked then
+					mainapi:CreateNotification('Access failed', tostring(currentAccess.Reason or 'Access denied.'), 6, 'alert')
 				else
-					mainapi:CreateNotification('Access failed', tostring(result), 6, 'alert')
+					mainapi:CreateNotification('Access updated', 'Tier: '..getAccessDisplay(currentAccess), 5)
 				end
+				repaintEveryControl()
 			else
 				mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
 			end
@@ -8348,7 +8577,7 @@ accesspane:CreateButton({
 			mainapi:CreateNotification('Access failed', tostring(safeErr), 6, 'alert')
 		end
 	end,
-	Tooltip = 'Checks a whitelist key or unlocks admin tools when an admin key is entered.'
+	Tooltip = 'Checks a whitelist key or unlocks developer tools when a developer key is entered.'
 })
 task.defer(function()
 	local currentAccess = shared.SilentwareAccess or access
