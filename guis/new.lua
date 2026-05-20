@@ -703,9 +703,12 @@ local themePresets = {
 	}
 }
 
-local themePresetNames = {'Emerald Noir', 'Cotton Candy', 'Sapphire Night', 'Royal Amethyst', 'Rose Quartz', 'Arctic Chrome', 'Solar Flare', 'Crimson Velvet', 'Cyberpunk Bloom', 'Ocean Glass', 'Ghost Lavender', 'Golden Hour', 'Monochrome Ice', 'Sakura Noir', 'Void Blue', 'Peach Cream', 'Grape Soda', 'Cherry Cola', 'Rainbow', 'Jade Glass', 'Obsidian Mint', 'Viridian Luxe', 'Toxic Luxury', 'Cyber Forest', 'Beta Aurora', 'Midnight Terminal'}
+local themePresetNames = {'Emerald Noir', 'Cotton Candy', 'Sapphire Night', 'Royal Amethyst', 'Rose Quartz', 'Arctic Chrome', 'Solar Flare', 'Crimson Velvet', 'Cyberpunk Bloom', 'Ocean Glass', 'Ghost Lavender', 'Golden Hour', 'Monochrome Ice', 'Sakura Noir', 'Void Blue', 'Peach Cream', 'Grape Soda', 'Cherry Cola', 'Rainbow'}
+local allowedThemePresets = {}
+for _, themeName in themePresetNames do allowedThemePresets[themeName] = true end
 
 local function applyThemeToPalette(presetName)
+	if not allowedThemePresets[presetName] then presetName = 'Emerald Noir' end
 	local preset = themePresets[presetName] or themePresets['Emerald Noir']
 	for key, value in pairs(preset) do
 		if uipallet[key] ~= nil and (typeof(value) == 'Color3' or type(value) == 'number') then
@@ -719,7 +722,7 @@ local function applyThemeToPalette(presetName)
 	uipallet.NotificationAccent = preset.NotificationAccent or preset.Accent or uipallet.NotificationAccent
 	mainapi.ThemePreset = presetName
 	mainapi.RainbowTheme = preset.IsRainbow == true
-	mainapi.GUIColor.Rainbow = mainapi.RainbowTheme
+	mainapi.GUIColor.Rainbow = false
 	mainapi.GUIColor.Hue = preset.Hue or mainapi.GUIColor.Hue
 	mainapi.GUIColor.Sat = preset.Sat or mainapi.GUIColor.Sat
 	mainapi.GUIColor.Value = preset.Value or mainapi.GUIColor.Value
@@ -729,7 +732,7 @@ end
 pcall(function()
 	if isfile and isfile('vape/SilentwareTheme.txt') then
 		local savedTheme = tostring(readfile('vape/SilentwareTheme.txt') or ''):gsub('^%s+', ''):gsub('%s+$', '')
-		if themePresets[savedTheme] then mainapi.ThemePreset = savedTheme end
+		if themePresets[savedTheme] and allowedThemePresets[savedTheme] then mainapi.ThemePreset = savedTheme end
 	end
 end)
 applyThemeToPalette(mainapi.ThemePreset)
@@ -821,7 +824,82 @@ local function refreshPremiumTheme()
 			end
 		end
 	end
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			if not isThemePreviewObject(obj) then
+				if obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+					if obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' then
+						obj.ImageColor3 = uipallet.Accent
+					end
+				elseif obj:IsA('TextButton') then
+					if obj.Name == 'SettingsButton' then
+						obj.BackgroundColor3 = uipallet.SurfaceAlt
+						local st = obj:FindFirstChildOfClass('UIStroke')
+						if st then st.Color = uipallet.Accent; st.Transparency = 0.48 end
+					elseif obj.Name == 'RebindGuiButton' then
+						obj.BackgroundColor3 = uipallet.SurfaceAlt
+						obj.TextColor3 = uipallet.Text
+						local st = obj:FindFirstChildOfClass('UIStroke')
+						if st then st.Color = uipallet.Border; st.Transparency = 0.52 end
+					end
+				elseif obj:IsA('Frame') then
+					if obj.Name == 'Overlays' or obj.Name == 'OverlaysWindow' then
+						obj.BackgroundColor3 = uipallet.Surface
+						local st = obj:FindFirstChildOfClass('UIStroke')
+						if st then st.Color = uipallet.Border end
+					elseif obj.Name == 'ShadowCore' then
+						obj.BackgroundTransparency = math.clamp(uipallet.ShadowTransparency + 0.72, 0.82, 0.95)
+					end
+				elseif obj:IsA('UIStroke') and obj.Name == 'GlowStroke' then
+					obj.Color = uipallet.AccentGlow or uipallet.Accent
+				end
+			end
+		end
+	end
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
+end
+
+local function refreshRainbowThemeFast()
+	local hue = (tick() * 0.055 * (mainapi.RainbowSpeed and mainapi.RainbowSpeed.Value or 1)) % 1
+	mainapi.GUIColor.Hue = hue
+	mainapi.GUIColor.Sat = 0.72
+	mainapi.GUIColor.Value = 0.98
+	uipallet.Accent = Color3.fromHSV(hue, 0.72, 0.98)
+	uipallet.AccentSoft = Color3.fromHSV((hue + 0.08) % 1, 0.64, 0.78)
+	uipallet.AccentGlow = Color3.fromHSV((hue + 0.12) % 1, 0.58, 1)
+	uipallet.ActiveToggle = uipallet.Accent
+	uipallet.NotificationAccent = uipallet.Accent
+	local accent = uipallet.Accent
+	if mainapi.PremiumGlow then
+		mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or accent
+		local st = mainapi.PremiumGlow:FindFirstChild('GlowStroke')
+		if st then st.Color = uipallet.AccentGlow or accent end
+	end
+	if mainapi.AccessTierPill then
+		mainapi.AccessTierPill.TextColor3 = accent
+		local st = mainapi.AccessTierPill:FindFirstChildOfClass('UIStroke')
+		if st then st.Color = accent end
+	end
+	if mainapi.SettingsIcon then mainapi.SettingsIcon.ImageColor3 = accent end
+	if mainapi.OverlaysIcon then mainapi.OverlaysIcon.ImageColor3 = accent end
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			if not isThemePreviewObject(obj) then
+				if obj:IsA('Frame') then
+					if obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
+						obj.BackgroundColor3 = accent
+					end
+				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+					if obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or obj.Name:find('Glow') or obj.Name:find('Accent') then
+						obj.ImageColor3 = accent
+					end
+				elseif obj:IsA('UIStroke') and obj.Name == 'GlowStroke' then
+					obj.Color = accent
+				end
+			end
+		end
+	end
+	pcall(function() mainapi:UpdateGUI(hue, 0.72, 0.98, true) end)
 end
 
 function mainapi:ApplyThemePreset(presetName)
@@ -978,68 +1056,55 @@ function getAccentColor(hue, sat, val)
 end
 
 local function addGlow(parent, name, transparency, sizePad)
+	-- Code-only glow: no stretched image assets. The old image glow could render as
+	-- giant translucent boxes in some executors, so this keeps the premium edge
+	-- treatment without adding visible square artifacts.
 	local glow = Instance.new('ImageLabel')
 	glow.Name = name or 'Glow'
-	local pad = sizePad or 62
-	glow.Size = UDim2.new(1, pad, 1, pad)
-	glow.Position = UDim2.fromOffset(-(pad / 2), -(pad / 2))
+	glow.Size = UDim2.fromScale(1, 1)
+	glow.Position = UDim2.fromOffset(0, 0)
 	glow.BackgroundTransparency = 1
-	glow.Image = getcustomasset('vape/assets/softglow.png')
-	glow.ImageColor3 = uipallet.Accent
-	glow.ImageTransparency = transparency == nil and 0.62 or transparency
-	glow.ScaleType = Enum.ScaleType.Stretch
+	glow.BorderSizePixel = 0
+	glow.Image = ''
+	glow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
+	glow.ImageTransparency = 1
 	glow.ZIndex = math.max((parent.ZIndex or 1) - 1, 0)
 	glow.Parent = parent
-
-	-- If the optional soft glow asset is not present yet, use a code-only glow core.
-	-- This avoids the old stretched blur image that caused ugly transparent square artifacts.
-	if glow.Image == '' then
-		local glowCore = Instance.new('Frame')
-		glowCore.Name = 'AccentGlowCore'
-		glowCore.Size = UDim2.new(1, -math.floor(pad * 0.42), 1, -math.floor(pad * 0.42))
-		glowCore.Position = UDim2.fromOffset(math.floor(pad * 0.21), math.floor(pad * 0.21))
-		glowCore.BackgroundColor3 = uipallet.AccentGlow or uipallet.Accent
-		glowCore.BackgroundTransparency = math.clamp((transparency == nil and 0.72 or transparency) + 0.12, 0, 0.96)
-		glowCore.BorderSizePixel = 0
-		glowCore.ZIndex = glow.ZIndex
-		glowCore.Parent = glow
-		addCorner(glowCore, UDim.new(0, math.max(10, math.floor(pad * 0.22))))
-		local glowStroke = Instance.new('UIStroke')
-		glowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		glowStroke.Color = uipallet.AccentGlow or uipallet.Accent
-		glowStroke.Thickness = 1
-		glowStroke.Transparency = 0.68
-		glowStroke.Parent = glowCore
-	end
+	addCorner(glow, UDim.new(0, 16))
+	local glowStroke = Instance.new('UIStroke')
+	glowStroke.Name = 'GlowStroke'
+	glowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	glowStroke.Color = uipallet.AccentGlow or uipallet.Accent
+	glowStroke.Thickness = 1
+	glowStroke.Transparency = transparency == nil and 0.74 or math.clamp(transparency, 0.38, 0.92)
+	glowStroke.Parent = glow
 	return glow
 end
 
 local function addShadow(parent, name, transparency, sizePad, offsetY)
+	-- Code-only shadow: intentionally tight to the object so it cannot show as
+	-- a huge square panel around the whole GUI.
 	local shadow = Instance.new('ImageLabel')
 	shadow.Name = name or 'DropShadow'
-	local pad = sizePad or 76
-	shadow.Size = UDim2.new(1, pad, 1, pad)
-	shadow.Position = UDim2.fromOffset(-(pad / 2), -(pad / 2) + (offsetY or 8))
+	shadow.Size = UDim2.new(1, 10, 1, 10)
+	shadow.Position = UDim2.fromOffset(-5, -3 + (offsetY or 5))
 	shadow.BackgroundTransparency = 1
-	shadow.Image = getcustomasset('vape/assets/softshadow.png')
+	shadow.BorderSizePixel = 0
+	shadow.Image = ''
 	shadow.ImageColor3 = Color3.new(0, 0, 0)
-	shadow.ImageTransparency = transparency == nil and 0.42 or transparency
-	shadow.ScaleType = Enum.ScaleType.Stretch
+	shadow.ImageTransparency = 1
 	shadow.ZIndex = math.max((parent.ZIndex or 1) - 2, 0)
 	shadow.Parent = parent
-
-	if shadow.Image == '' then
-		local shadowCore = Instance.new('Frame')
-		shadowCore.Name = 'ShadowCore'
-		shadowCore.Size = UDim2.new(1, -math.floor(pad * 0.28), 1, -math.floor(pad * 0.28))
-		shadowCore.Position = UDim2.fromOffset(math.floor(pad * 0.14), math.floor(pad * 0.14))
-		shadowCore.BackgroundColor3 = Color3.new(0, 0, 0)
-		shadowCore.BackgroundTransparency = math.clamp(transparency == nil and 0.72 or transparency + 0.16, 0, 0.94)
-		shadowCore.BorderSizePixel = 0
-		shadowCore.ZIndex = shadow.ZIndex
-		shadowCore.Parent = shadow
-		addCorner(shadowCore, UDim.new(0, math.max(12, math.floor(pad * 0.2))))
-	end
+	local shadowCore = Instance.new('Frame')
+	shadowCore.Name = 'ShadowCore'
+	shadowCore.Size = UDim2.fromScale(1, 1)
+	shadowCore.Position = UDim2.fromOffset(0, 0)
+	shadowCore.BackgroundColor3 = Color3.new(0, 0, 0)
+	shadowCore.BackgroundTransparency = math.clamp(transparency == nil and 0.86 or math.max(transparency, 0.82), 0.78, 0.96)
+	shadowCore.BorderSizePixel = 0
+	shadowCore.ZIndex = shadow.ZIndex
+	shadowCore.Parent = shadow
+	addCorner(shadowCore, UDim.new(0, 18))
 	return shadow
 end
 
@@ -3755,18 +3820,9 @@ end)
 task.spawn(function()
 	while mainapi.Loaded ~= nil do
 		if mainapi.RainbowTheme then
-			local hue = (tick() * 0.08 * (mainapi.RainbowSpeed and mainapi.RainbowSpeed.Value or 1)) % 1
-			mainapi.GUIColor.Hue = hue
-			mainapi.GUIColor.Sat = 0.72
-			mainapi.GUIColor.Value = 0.98
-			uipallet.Accent = Color3.fromHSV(hue, 0.72, 0.98)
-			uipallet.AccentSoft = Color3.fromHSV((hue + 0.08) % 1, 0.64, 0.78)
-			uipallet.AccentGlow = Color3.fromHSV((hue + 0.12) % 1, 0.58, 1)
-			uipallet.ActiveToggle = uipallet.Accent
-			uipallet.NotificationAccent = uipallet.Accent
-			refreshPremiumTheme()
+			refreshRainbowThemeFast()
 		end
-		task.wait(mainapi.RainbowTheme and 0.08 or 0.35)
+		task.wait(mainapi.RainbowTheme and 0.38 or 0.55)
 	end
 end)
 
@@ -3895,7 +3951,7 @@ function mainapi:CreateGUI()
 	local tierpill = Instance.new('TextLabel')
 	tierpill.Name = 'AccessTierPill'
 	tierpill.Size = UDim2.fromOffset(92, 22)
-	tierpill.Position = UDim2.fromOffset(132, 18)
+	tierpill.Position = UDim2.fromOffset(128, 18)
 	tierpill.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
 	tierpill.BackgroundTransparency = 0.12
 	tierpill.BorderSizePixel = 0
@@ -3916,6 +3972,7 @@ function mainapi:CreateGUI()
 	accentbar.Position = UDim2.new(1, -152, 0, 30)
 	accentbar.BackgroundColor3 = uipallet.Accent
 	accentbar.BorderSizePixel = 0
+	accentbar.Visible = false
 	accentbar.Parent = topbar
 	addCorner(accentbar, UDim.new(1, 0))
 	local accentGlow = addGlow(accentbar, 'AccentGlow', 0.42, 46)
@@ -3994,7 +4051,7 @@ function mainapi:CreateGUI()
 		end
 	end)
 	local settingsbutton = Instance.new('TextButton')
-	settingsbutton.Name = 'Settings'
+	settingsbutton.Name = 'SettingsButton'
 	settingsbutton.Size = UDim2.fromOffset(38, 38)
 	settingsbutton.Position = UDim2.new(1, -62, 0, 11)
 	settingsbutton.BackgroundColor3 = uipallet.SurfaceAlt
@@ -4005,12 +4062,15 @@ function mainapi:CreateGUI()
 	addStroke(settingsbutton, uipallet.Border, 1, 0.58)
 	addTooltip(settingsbutton, 'Open settings')
 	local settingsicon = Instance.new('ImageLabel')
+	settingsicon.Name = 'SettingsIcon'
 	settingsicon.Size = UDim2.fromOffset(15, 15)
 	settingsicon.Position = UDim2.fromOffset(12, 11)
 	settingsicon.BackgroundTransparency = 1
 	settingsicon.Image = getcustomasset('vape/assets/guisettings.png')
-	settingsicon.ImageColor3 = color.Light(uipallet.Main, 0.37)
+	settingsicon.ImageColor3 = uipallet.Accent
 	settingsicon.Parent = settingsbutton
+	mainapi.SettingsIcon = settingsicon
+	mainapi.SettingsButton = settingsbutton
 	local settingspane = Instance.new('TextButton')
 	settingspane.Size = UDim2.fromOffset(438, 390)
 	settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -4086,6 +4146,7 @@ function mainapi:CreateGUI()
 		local optionapi = {Bind = {'RightShift'}}
 
 		local button = Instance.new('TextButton')
+		button.Name = 'RebindGuiButton'
 		button.Size = UDim2.fromOffset(220, 40)
 		button.BackgroundColor3 = uipallet.SurfaceAlt
 		button.BorderSizePixel = 0
@@ -4113,12 +4174,12 @@ function mainapi:CreateGUI()
 		addCorner(bind, UDim.new(0, 4))
 		addStroke(bind, uipallet.Border, 1, 0.68)
 		local icon = Instance.new('ImageLabel')
-		icon.Name = 'Icon'
+		icon.Name = 'BindIcon'
 		icon.Size = UDim2.fromOffset(12, 12)
 		icon.Position = UDim2.new(0.5, -6, 0, 5)
 		icon.BackgroundTransparency = 1
 		icon.Image = getcustomasset('vape/assets/bind.png')
-		icon.ImageColor3 = color.Dark(uipallet.Text, 0.43)
+		icon.ImageColor3 = uipallet.Accent
 		icon.Parent = bind
 		local label = Instance.new('TextLabel')
 		label.Name = 'Text'
@@ -4152,13 +4213,13 @@ function mainapi:CreateGUI()
 			label.Visible = false
 			icon.Visible = not label.Visible
 			icon.Image = getcustomasset('vape/assets/edit.png')
-			icon.ImageColor3 = color.Dark(uipallet.Text, 0.16)
+			icon.ImageColor3 = uipallet.Accent
 		end)
 		bind.MouseLeave:Connect(function()
 			label.Visible = true
 			icon.Visible = not label.Visible
 			icon.Image = getcustomasset('vape/assets/bind.png')
-			icon.ImageColor3 = color.Dark(uipallet.Text, 0.43)
+			icon.ImageColor3 = uipallet.Accent
 		end)
 		bind.MouseButton1Click:Connect(function()
 			mainapi.Binding = optionapi
@@ -4324,13 +4385,15 @@ function mainapi:CreateGUI()
 		bar.Parent = children
 		components.Divider(bar)
 		local button = Instance.new('ImageButton')
+		button.Name = 'OverlaysButtonIcon'
 		button.Size = UDim2.fromOffset(24, 24)
 		button.Position = UDim2.new(1, -29, 0, 7)
 		button.BackgroundTransparency = 1
 		button.AutoButtonColor = false
 		button.Image = getcustomasset('vape/assets/overlaysicon.png')
-		button.ImageColor3 = color.Light(uipallet.Main, 0.37)
+		button.ImageColor3 = uipallet.Accent
 		button.Parent = bar
+		mainapi.OverlaysIcon = button
 		addCorner(button, UDim.new(1, 0))
 		addTooltip(button, 'Open overlays menu')
 		local shadow = Instance.new('TextButton')
@@ -4345,18 +4408,19 @@ function mainapi:CreateGUI()
 		shadow.Parent = window
 		addCorner(shadow)
 		local window = Instance.new('Frame')
+		window.Name = 'OverlaysWindow'
 		window.Size = UDim2.fromOffset(220, 42)
 		window.Position = UDim2.fromScale(0, 1)
 		window.BackgroundColor3 = uipallet.Surface
 		window.Parent = shadow
 		styleShell(window, UDim.new(0, 10), 0.48)
 		local icon = Instance.new('ImageLabel')
-		icon.Name = 'Icon'
+		icon.Name = 'OverlayMenuIcon'
 		icon.Size = UDim2.fromOffset(14, 12)
 		icon.Position = UDim2.fromOffset(10, 13)
 		icon.BackgroundTransparency = 1
 		icon.Image = getcustomasset('vape/assets/overlaystab.png')
-		icon.ImageColor3 = uipallet.Text
+		icon.ImageColor3 = uipallet.Accent
 		icon.Parent = window
 		local title = Instance.new('TextLabel')
 		title.Name = 'Title'
@@ -5191,10 +5255,10 @@ function mainapi:CreateGUI()
 		settingspane.Visible = false
 	end)
 	settingsbutton.MouseEnter:Connect(function()
-		settingsicon.ImageColor3 = uipallet.Text
+		settingsicon.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
 	end)
 	settingsbutton.MouseLeave:Connect(function()
-		settingsicon.ImageColor3 = color.Light(uipallet.Main, 0.37)
+		settingsicon.ImageColor3 = uipallet.Accent
 	end)
 	settingsbutton.MouseButton1Click:Connect(function()
 		settingspane.Visible = true
