@@ -28,6 +28,7 @@ local mainapi = {
 	SettingsPanes = {},
 	SettingsOpen = false,
 	ThemePreviewCards = {},
+	SearchObjects = nil,
 	Windows = {}
 }
 mainapi.ThreadFix = false
@@ -627,6 +628,7 @@ local function applyThemeToPalette(presetName)
 	uipallet.ActiveToggle = preset.ActiveToggle or preset.Accent or uipallet.ActiveToggle
 	uipallet.NotificationAccent = preset.NotificationAccent or preset.Accent or uipallet.NotificationAccent
 	mainapi.ThemePreset = presetName
+	mainapi.ActiveThemeData = preset
 	mainapi.RainbowTheme = preset.IsRainbow == true
 	mainapi.GUIColor.Rainbow = false
 	mainapi.GUIColor.Hue = preset.Hue or mainapi.GUIColor.Hue
@@ -742,6 +744,10 @@ local function restyleControlObject(obj)
 	elseif obj:IsA('TextBox') then
 		obj.TextColor3 = uipallet.Text
 		obj.PlaceholderColor3 = uipallet.MutedText
+		if obj.Parent and obj.Parent.Name == 'Search' then
+			obj.TextColor3 = uipallet.Text
+			obj.PlaceholderColor3 = uipallet.MutedText
+		end
 	elseif obj:IsA('TextButton') then
 		if role == 'SettingsNavButton' then
 			obj.BackgroundColor3 = uipallet.SurfaceAlt
@@ -776,6 +782,9 @@ local function restyleControlObject(obj)
 			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.012)
 		elseif obj.Name == 'SettingsFocusScrim' then
 			obj.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+		elseif obj.Name == 'Search' then
+			obj.BackgroundColor3 = uipallet.SurfaceAlt
+			styleManagedStroke(obj, uipallet.Border, 0.46)
 		elseif obj.Name == 'BKG' or obj.Name == 'Card' or obj.Name == 'CardSurface' or obj.Name == 'Overlays' or obj.Name == 'OverlaysWindow' then
 			obj.BackgroundColor3 = uipallet.SurfaceAlt
 		elseif obj.Name == 'Knob' then
@@ -807,6 +816,8 @@ local function restyleControlObject(obj)
 	end
 end
 
+local repaintThemePreviewCards
+local setupRainbowDecor
 local function repaintEveryControl()
 	if notifications then
 		for _, obj in notifications:GetDescendants() do
@@ -825,21 +836,79 @@ local function repaintEveryControl()
 		mainapi.GlassBackdrop.BackgroundColor3 = uipallet.Main
 		mainapi.GlassBackdrop.BackgroundTransparency = math.clamp((uipallet.GlassTransparency or 0.08) + 0.55, 0.55, 0.82)
 	end
+	if mainapi.RefreshSearchTheme then pcall(function() mainapi:RefreshSearchTheme() end) end
 end
 
-local function makeRainbowSequence(shift)
-	shift = shift or 0
-	local function c(pos)
-		return Color3.fromHSV((pos + shift) % 1, 0.72, 1)
+function mainapi:RefreshSearchTheme()
+	local search = self.SearchObjects
+	if type(search) ~= 'table' then return end
+	local accent = getAccentColor()
+	if search.Root and search.Root.Parent then
+		search.Root.BackgroundColor3 = uipallet.SurfaceAlt
+		search.Root.BackgroundTransparency = math.clamp((uipallet.PanelTransparency or 0.04) + 0.02, 0.02, 0.12)
+		styleManagedStroke(search.Root, uipallet.Border, 0.42)
 	end
+	if search.Icon and search.Icon.Parent then search.Icon.ImageColor3 = uipallet.Accent end
+	if search.Legit and search.Legit.Parent then search.Legit.ImageColor3 = uipallet.Accent end
+	if search.LegitDivider and search.LegitDivider.Parent then
+		search.LegitDivider.BackgroundColor3 = uipallet.Border
+		search.LegitDivider.BackgroundTransparency = 0.35
+	end
+	if search.TextBox and search.TextBox.Parent then
+		search.TextBox.TextColor3 = uipallet.Text
+		search.TextBox.PlaceholderColor3 = uipallet.MutedText
+	end
+	if search.Children and search.Children.Parent then search.Children.ScrollBarImageColor3 = uipallet.Accent end
+	if search.Divider and search.Divider.Parent then search.Divider.BackgroundColor3 = uipallet.Border end
+	if search.Root and search.Root:FindFirstChild('Blur') then
+		local blur = search.Root.Blur
+		pcall(function() blur.ImageColor3 = uipallet.AccentGlow or accent end)
+	end
+end
+
+local function refreshDynamicThemeObjects()
+	if mainapi.RefreshSearchTheme then pcall(function() mainapi:RefreshSearchTheme() end) end
+	for _, category in pairs(mainapi.Categories or {}) do
+		if category.Button and category.Button.ApplyState then
+			pcall(function() category.Button.ApplyState(category.Button.Enabled) end)
+		end
+	end
+	for _, moduleapi in pairs(mainapi.Modules or {}) do
+		if type(moduleapi.ApplyTheme) == 'function' then
+			pcall(function() moduleapi:ApplyTheme() end)
+		elseif type(moduleapi.ApplyAccessState) == 'function' then
+			pcall(function() moduleapi:ApplyAccessState() end)
+		end
+	end
+	for _, pane in pairs(mainapi.SettingsPanes or {}) do
+		if type(pane.ApplyTheme) == 'function' then pcall(function() pane:ApplyTheme() end) end
+	end
+	repaintThemePreviewCards()
+	repaintEveryControl()
+	if mainapi.RainbowTheme then setupRainbowDecor(true) end
+end
+
+function mainapi:RefreshThemedControls()
+	refreshDynamicThemeObjects()
+end
+
+local function makeRainbowSequence(shift, sat, val)
+	shift = shift or 0
+	sat = sat or 0.82
+	val = val or 1
+	local function c(pos, saturation, value)
+		return Color3.fromHSV((pos + shift) % 1, saturation or sat, value or val)
+	end
+	-- Premium prism band: warmer pink/orange, clean cyan/blue, and violet instead of a cheap flat HSV loop.
 	return ColorSequence.new({
-		ColorSequenceKeypoint.new(0.00, c(0.92)),
-		ColorSequenceKeypoint.new(0.16, c(0.03)),
-		ColorSequenceKeypoint.new(0.32, c(0.13)),
-		ColorSequenceKeypoint.new(0.50, c(0.36)),
-		ColorSequenceKeypoint.new(0.68, c(0.55)),
-		ColorSequenceKeypoint.new(0.84, c(0.72)),
-		ColorSequenceKeypoint.new(1.00, c(0.92))
+		ColorSequenceKeypoint.new(0.00, c(0.92, 0.72, 1.00)),
+		ColorSequenceKeypoint.new(0.12, c(0.02, 0.78, 1.00)),
+		ColorSequenceKeypoint.new(0.24, c(0.09, 0.74, 1.00)),
+		ColorSequenceKeypoint.new(0.38, c(0.17, 0.70, 1.00)),
+		ColorSequenceKeypoint.new(0.54, c(0.47, 0.74, 1.00)),
+		ColorSequenceKeypoint.new(0.70, c(0.58, 0.78, 1.00)),
+		ColorSequenceKeypoint.new(0.86, c(0.73, 0.76, 1.00)),
+		ColorSequenceKeypoint.new(1.00, c(0.92, 0.72, 1.00))
 	})
 end
 
@@ -849,55 +918,133 @@ local rainbowRuntime = {
 	LastRebuild = 0,
 	LastStep = 0,
 	StepRate = 1 / 18,
-	RebuildRate = 2.75,
-	Hue = 0
+	RebuildRate = 8,
+	Hue = 0,
+	Speed = 0.052,
+	MaxTargets = 64
 }
 
-local function rainbowColor(offset, sat, val)
-	return Color3.fromHSV((rainbowRuntime.Hue + (offset or 0)) % 1, sat or 0.72, val or 1)
+local function getRainbowThemeValue(key, fallback)
+	local preset = mainapi.ActiveThemeData
+	if type(preset) == 'table' and preset[key] ~= nil then
+		return preset[key]
+	end
+	return fallback
 end
 
-local function safeAddRainbowGradient(obj, name, offset, rotationSpeed)
+local function rainbowColor(offset, sat, val)
+	local saturation = sat or getRainbowThemeValue('RainbowSaturation', 0.78)
+	local value = val or getRainbowThemeValue('RainbowValue', 1)
+	return Color3.fromHSV((rainbowRuntime.Hue + (offset or 0)) % 1, saturation, value)
+end
+
+local function rainbowSpatialOffset(obj, fallback)
+	local base = fallback or 0
+	local ok, pos = pcall(function() return obj.AbsolutePosition end)
+	if ok and pos then
+		base += (pos.X * 0.0017) + (pos.Y * 0.0023)
+	end
+	return base % 1
+end
+
+local function safeAddRainbowGradient(obj, name, offset, rotationSpeed, options)
 	if not obj or not obj.Parent or not obj:IsA('GuiObject') then return end
+	options = options or {}
 	local gradient = obj:FindFirstChild(name)
 	if not gradient then
 		gradient = Instance.new('UIGradient')
 		gradient.Name = name
 		gradient.Parent = obj
 	end
-	gradient.Color = makeRainbowSequence(offset or 0)
+	gradient.Color = options.Color or makeRainbowSequence(offset or 0, options.Saturation, options.Value)
 	gradient.Enabled = true
 	gradient.Rotation = gradient.Rotation or 0
+	if options.Transparency then
+		gradient.Transparency = options.Transparency
+	end
 	table.insert(rainbowRuntime.Gradients, {
 		Object = gradient,
 		Offset = offset or 0,
-		RotationSpeed = rotationSpeed or 11
+		RotationSpeed = rotationSpeed or 10,
+		OffsetSpeed = options.OffsetSpeed or 0.22,
+		OffsetAmplitude = options.OffsetAmplitude or 0.18,
+		PulseObject = options.PulseObject,
+		BaseTransparency = options.BaseTransparency,
+		PulseAmount = options.PulseAmount or 0.025
 	})
 	return gradient
 end
 
+local function safeAddRainbowLayer(parent, name, offset, rotationSpeed, transparency, zOffset, cornerRadius)
+	if not parent or not parent.Parent or not parent:IsA('GuiObject') then return end
+	local layer = parent:FindFirstChild(name)
+	if not layer then
+		layer = Instance.new('Frame')
+		layer.Name = name
+		layer.Size = UDim2.fromScale(1, 1)
+		layer.Position = UDim2.fromScale(0, 0)
+		layer.BackgroundColor3 = Color3.new(1, 1, 1)
+		layer.BorderSizePixel = 0
+		layer.Active = false
+		layer.Selectable = false
+		layer.ClipsDescendants = true
+		addCorner(layer, cornerRadius or UDim.new(0, 16))
+		layer.Parent = parent
+	end
+	layer.Visible = true
+	layer.BackgroundTransparency = transparency or 0.92
+	layer.ZIndex = math.max((parent.ZIndex or 1) + (zOffset or 1), 0)
+	safeAddRainbowGradient(layer, name..'Gradient', offset or 0, rotationSpeed or 8, {
+		OffsetSpeed = 0.26,
+		OffsetAmplitude = 0.22,
+		PulseObject = layer,
+		BaseTransparency = transparency or 0.92,
+		PulseAmount = 0.018,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0.00, 0.28),
+			NumberSequenceKeypoint.new(0.45, 0.72),
+			NumberSequenceKeypoint.new(1.00, 0.35)
+		})
+	})
+	return layer
+end
+
 local function safeAddRainbowTarget(obj, property, offset, sat, val)
 	if not obj or not obj.Parent or not property then return end
+	if #rainbowRuntime.Targets >= (rainbowRuntime.MaxTargets or 64) then return end
 	table.insert(rainbowRuntime.Targets, {
 		Object = obj,
 		Property = property,
 		Offset = offset or 0,
-		Sat = sat or 0.72,
+		Sat = sat or 0.78,
 		Value = val or 1
 	})
 end
 
-local function clearRainbowDecor()
-	for _, entry in rainbowRuntime.Gradients do
-		local gradient = entry.Object
-		if gradient and gradient.Parent and gradient.Name and tostring(gradient.Name):find('Rainbow') then
-			pcall(function() gradient:Destroy() end)
-		end
+
+local function safeAddRainbowStroke(obj, offset, thickness, transparency)
+	if not obj or not obj.Parent or not obj:IsA('GuiObject') then return end
+	local stroke = obj:FindFirstChild('SilentwareRainbowChromeStroke')
+	if not stroke then
+		stroke = Instance.new('UIStroke')
+		stroke.Name = 'SilentwareRainbowChromeStroke'
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = obj
 	end
+	stroke.Thickness = thickness or 1
+	stroke.Transparency = transparency == nil and 0.52 or transparency
+	safeAddRainbowTarget(stroke, 'Color', offset or 0, 0.75, 1)
+	return stroke
+end
+
+local function clearRainbowDecor()
 	if gui then
 		for _, obj in gui:GetDescendants() do
-			if obj:IsA('UIGradient') and tostring(obj.Name):find('Rainbow') then
-				pcall(function() obj:Destroy() end)
+			local objName = tostring(obj.Name)
+			if objName:find('SilentwareRainbow') or objName == 'RainbowChromeStroke' or objName == 'RainbowManagedStroke' then
+				if obj:IsA('UIGradient') or obj:IsA('UIStroke') or obj:IsA('Frame') then
+					pcall(function() obj:Destroy() end)
+				end
 			end
 		end
 	end
@@ -906,58 +1053,80 @@ local function clearRainbowDecor()
 	mainapi.RainbowDecor = rainbowRuntime.Gradients
 end
 
-local function setupRainbowDecor(force)
+setupRainbowDecor = function(force)
 	if not mainapi.RainbowTheme then return end
 	local now = os.clock()
 	if not force and now - (rainbowRuntime.LastRebuild or 0) < rainbowRuntime.RebuildRate then return end
 	rainbowRuntime.LastRebuild = now
 	rainbowRuntime.Gradients = {}
 	rainbowRuntime.Targets = {}
+	rainbowRuntime.StepRate = getRainbowThemeValue('RainbowStepRate', 1 / 18)
+	rainbowRuntime.Speed = getRainbowThemeValue('RainbowSpeed', 0.052)
+	rainbowRuntime.MaxTargets = getRainbowThemeValue('RainbowMaxTargets', 64)
 	mainapi.RainbowDecor = rainbowRuntime.Gradients
 
-	-- Borrowed structure from VWRewrite: one global updater touches only registered rainbow UI,
-	-- instead of repainting every descendant or running a tween on every control.
-	safeAddRainbowGradient(mainapi.PremiumShell, 'SilentwareRainbowShell', 0.00, 7)
-	safeAddRainbowGradient(mainapi.PremiumContent, 'SilentwareRainbowContent', 0.12, 5)
-	safeAddRainbowGradient(mainapi.PremiumTitle, 'SilentwareRainbowTitle', 0.26, 9)
-	safeAddRainbowGradient(mainapi.AccessTierPill, 'SilentwareRainbowTier', 0.44, 10)
-	if mainapi.PremiumGlow then safeAddRainbowTarget(mainapi.PremiumGlow, 'ImageColor3', 0.60, 0.68, 1) end
-	if mainapi.PremiumTitleGlow then safeAddRainbowTarget(mainapi.PremiumTitleGlow, 'TextColor3', 0.38, 0.66, 1) end
+	-- Ambitious but lightweight: animated aurora layers + chrome strokes + registered accents only.
+	-- This avoids repainting the whole GUI and keeps the expensive work to a tiny list of objects.
+	safeAddRainbowLayer(mainapi.PremiumShell, 'SilentwareRainbowAuroraShell', 0.00, 5, 0.935, 1, UDim.new(0, 18))
+	safeAddRainbowLayer(mainapi.PremiumContent, 'SilentwareRainbowAuroraContent', 0.15, -4, 0.948, 1, UDim.new(0, 14))
+	safeAddRainbowLayer(mainapi.PremiumSidebar, 'SilentwareRainbowAuroraSidebar', 0.32, 6, 0.952, 1, UDim.new(0, 14))
+	if mainapi.SearchObjects and mainapi.SearchObjects.Root then
+		safeAddRainbowLayer(mainapi.SearchObjects.Root, 'SilentwareRainbowAuroraSearch', 0.52, -7, 0.955, 1, UDim.new(0, 12))
+	end
+	if mainapi.SettingsScrim then
+		safeAddRainbowTarget(mainapi.SettingsScrim, 'BackgroundColor3', 0.80, 0.35, 0.18)
+	end
+
+	safeAddRainbowGradient(mainapi.PremiumTitle, 'SilentwareRainbowTitle', 0.18, 10, {OffsetSpeed = 0.32, OffsetAmplitude = 0.16})
+	safeAddRainbowGradient(mainapi.AccessTierPill, 'SilentwareRainbowTier', 0.46, -9, {OffsetSpeed = 0.28, OffsetAmplitude = 0.12})
+	safeAddRainbowStroke(mainapi.PremiumShell, 0.02, 1.25, 0.34)
+	safeAddRainbowStroke(mainapi.PremiumContent, 0.18, 1, 0.48)
+	safeAddRainbowStroke(mainapi.PremiumSidebar, 0.34, 1, 0.50)
+	safeAddRainbowStroke(mainapi.AccessTierPill, 0.52, 1.15, 0.28)
+	if mainapi.SearchObjects and mainapi.SearchObjects.Root then safeAddRainbowStroke(mainapi.SearchObjects.Root, 0.66, 1, 0.44) end
+	if mainapi.PremiumGlow then safeAddRainbowTarget(mainapi.PremiumGlow, 'ImageColor3', 0.60, 0.72, 1) end
+	if mainapi.PremiumTitleGlow then safeAddRainbowTarget(mainapi.PremiumTitleGlow, 'TextColor3', 0.38, 0.70, 1) end
 	if mainapi.AccessTierPill then
-		safeAddRainbowTarget(mainapi.AccessTierPill, 'TextColor3', 0.54, 0.58, 1)
-		safeAddRainbowTarget(mainapi.AccessTierPill, 'BackgroundColor3', 0.64, 0.42, 0.26)
+		safeAddRainbowTarget(mainapi.AccessTierPill, 'TextColor3', 0.54, 0.55, 1)
+		safeAddRainbowTarget(mainapi.AccessTierPill, 'BackgroundColor3', 0.64, 0.36, 0.24)
 	end
 
 	if gui then
 		local count = 0
 		for _, obj in gui:GetDescendants() do
-			if count > 260 then break end
+			if count >= (rainbowRuntime.MaxTargets or 64) then break end
 			if not isThemePreviewObject(obj) then
 				local role = getSilentwareRole(obj)
-				local offset = (count % 18) * 0.021
+				local offset = rainbowSpatialOffset(obj, (count % 24) * 0.017)
 				if obj:IsA('Frame') then
-					if obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
-						safeAddRainbowTarget(obj, 'BackgroundColor3', offset)
+					if obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' or obj.Name == 'ShadowCore' then
+						safeAddRainbowTarget(obj, 'BackgroundColor3', offset, 0.76, obj.Name == 'ShadowCore' and 0.34 or 1)
 						count += 1
 					end
 				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
 					if obj.Name == 'Dots' or role == 'ModuleDots' or obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or tostring(obj.Name):find('Glow') or tostring(obj.Name):find('Accent') then
-						safeAddRainbowTarget(obj, 'ImageColor3', offset)
+						safeAddRainbowTarget(obj, 'ImageColor3', offset, 0.78, 1)
 						count += 1
 					end
 				elseif obj:IsA('TextLabel') then
-					if role == 'TierLock' or obj.Name == 'AccessTierPill' then
-						safeAddRainbowTarget(obj, 'TextColor3', offset)
-						if obj.BackgroundTransparency < 1 then safeAddRainbowTarget(obj, 'BackgroundColor3', offset + 0.08, 0.40, 0.28) end
+					if role == 'TierLock' or obj.Name == 'AccessTierPill' or obj.Name == 'Version' then
+						safeAddRainbowTarget(obj, 'TextColor3', offset, 0.62, 1)
+						if obj.BackgroundTransparency < 1 then safeAddRainbowTarget(obj, 'BackgroundColor3', offset + 0.08, 0.38, 0.28) end
 						count += 1
 					end
 				elseif obj:IsA('UIStroke') then
 					local parentRole = getSilentwareRole(obj.Parent)
 					if parentRole == 'TierLock' or obj.Name == 'GlowStroke' or (obj.Parent and (tostring(obj.Parent.Name):find('Pill') or tostring(obj.Parent.Name):find('Accent') or tostring(obj.Parent.Name):find('Tier'))) then
-						safeAddRainbowTarget(obj, 'Color', offset)
+						safeAddRainbowTarget(obj, 'Color', offset, 0.78, 1)
 						count += 1
 					end
 				end
+			end
+		end
+		for _, pane in pairs(mainapi.SettingsPanes or {}) do
+			if type(pane) == 'table' and pane.Root then
+				safeAddRainbowLayer(pane.Root, 'SilentwareRainbowAuroraPane', 0.74, 4, 0.962, 1, UDim.new(0, 13))
+				safeAddRainbowStroke(pane.Root, 0.74, 1, 0.52)
 			end
 		end
 	end
@@ -966,18 +1135,18 @@ end
 local function refreshRainbowThemeFast(force)
 	if not mainapi.RainbowTheme then return end
 	local now = os.clock()
-	if not force and now - (rainbowRuntime.LastStep or 0) < rainbowRuntime.StepRate then return end
+	if not force and now - (rainbowRuntime.LastStep or 0) < (rainbowRuntime.StepRate or (1 / 18)) then return end
 	rainbowRuntime.LastStep = now
-	rainbowRuntime.Hue = (now * 0.075) % 1
+	rainbowRuntime.Hue = (now * (rainbowRuntime.Speed or 0.052)) % 1
 	mainapi.GUIColor.Hue = rainbowRuntime.Hue
-	mainapi.GUIColor.Sat = 0.72
+	mainapi.GUIColor.Sat = 0.78
 	mainapi.GUIColor.Value = 1
-	uipallet.Accent = rainbowColor(0, 0.72, 1)
-	uipallet.AccentGlow = rainbowColor(0.08, 0.64, 1)
-	uipallet.ActiveToggle = rainbowColor(0.16, 0.72, 1)
-	uipallet.NotificationAccent = rainbowColor(0.32, 0.72, 1)
+	uipallet.Accent = rainbowColor(0, 0.80, 1)
+	uipallet.AccentGlow = rainbowColor(0.08, 0.70, 1)
+	uipallet.ActiveToggle = rainbowColor(0.16, 0.82, 1)
+	uipallet.NotificationAccent = rainbowColor(0.32, 0.78, 1)
 
-	if now - (rainbowRuntime.LastRebuild or 0) > rainbowRuntime.RebuildRate then
+	if now - (rainbowRuntime.LastRebuild or 0) > (rainbowRuntime.RebuildRate or 8) then
 		setupRainbowDecor(true)
 	end
 
@@ -987,7 +1156,13 @@ local function refreshRainbowThemeFast(force)
 		if not gradient or not gradient.Parent then
 			table.remove(rainbowRuntime.Gradients, i)
 		else
-			gradient.Rotation = ((now * (entry.RotationSpeed or 10)) + ((entry.Offset or 0) * 360)) % 360
+			pcall(function()
+				gradient.Rotation = ((now * (entry.RotationSpeed or 10)) + ((entry.Offset or 0) * 360)) % 360
+				gradient.Offset = Vector2.new(math.sin((now * (entry.OffsetSpeed or 0.22)) + ((entry.Offset or 0) * 6.283)) * (entry.OffsetAmplitude or 0.18), 0)
+				if entry.PulseObject and entry.PulseObject.Parent and entry.BaseTransparency then
+					entry.PulseObject.BackgroundTransparency = math.clamp(entry.BaseTransparency + (math.sin((now * 0.9) + ((entry.Offset or 0) * 6.283)) * (entry.PulseAmount or 0.02)), 0, 1)
+				end
+			end)
 		end
 	end
 
@@ -1004,7 +1179,7 @@ local function refreshRainbowThemeFast(force)
 	end
 end
 
-local function repaintThemePreviewCards()
+repaintThemePreviewCards = function()
 	if not mainapi.ThemePreviewCards then return end
 	for _, cardInfo in mainapi.ThemePreviewCards do
 		local preset = getThemePreset(cardInfo.PresetName, false)
@@ -1141,6 +1316,7 @@ local function refreshPremiumTheme()
 	end
 	repaintThemePreviewCards()
 	repaintEveryControl()
+	if mainapi.RefreshSearchTheme then pcall(function() mainapi:RefreshSearchTheme() end) end
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 end
 
@@ -1154,6 +1330,7 @@ function mainapi:ApplyThemePreset(presetName)
 		clearRainbowDecor()
 	end
 	refreshPremiumTheme()
+	refreshDynamicThemeObjects()
 	if mainapi.RainbowTheme then refreshRainbowThemeFast(true) end
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 	for _, pane in pairs(mainapi.SettingsPanes or {}) do
@@ -1169,6 +1346,7 @@ function mainapi:ApplyThemePreset(presetName)
 		end
 		pcall(function() mainapi:RefreshAccessLocks() end)
 		repaintEveryControl()
+		refreshDynamicThemeObjects()
 		if mainapi.RainbowTheme then refreshRainbowThemeFast(true) end
 		repaintThemePreviewCards()
 	end)
@@ -1178,6 +1356,7 @@ function mainapi:ApplyThemePreset(presetName)
 	if self.CreateNotification then
 		self:CreateNotification('Theme applied', '', 3)
 	end
+	if self.RefreshThemedControls then pcall(function() self:RefreshThemedControls() end) end
 	return preset
 end
 
@@ -5909,6 +6088,29 @@ function mainapi:CreateCategory(categorysettings)
 		end
 
 
+		function moduleapi:ApplyTheme()
+			modulechildren.BackgroundColor3 = color.Light(uipallet.Main, 0.01)
+			divider.BackgroundColor3 = uipallet.Border
+			bind.BackgroundColor3 = color.Light(uipallet.SurfaceAlt, 0.05)
+			styleManagedStroke(bind, uipallet.Border, 0.68)
+			bindicon.ImageColor3 = color.Dark(uipallet.Text, 0.43)
+			bindtext.TextColor3 = color.Dark(uipallet.Text, 0.43)
+			dots.ImageColor3 = self.Enabled and color.Dark(uipallet.Surface, 0.08) or uipallet.Accent
+			moduleGlow.ImageColor3 = getAccentColor()
+			if type(self.ApplyAccessState) == 'function' then
+				self:ApplyAccessState()
+			elseif self.Enabled then
+				modulebutton.TextColor3 = mainapi:TextColor(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value)
+				modulebutton.BackgroundColor3 = getAccentColor()
+				moduleAccent.BackgroundColor3 = getAccentColor()
+				if moduleStroke then moduleStroke.Color = getAccentColor() end
+			else
+				modulebutton.TextColor3 = color.Dark(uipallet.Text, 0.22)
+				modulebutton.BackgroundColor3 = uipallet.SurfaceAlt
+				if moduleStroke then moduleStroke.Color = uipallet.Border end
+			end
+		end
+
 		function moduleapi:SetBind(tab, mouse)
 			if tab.Mobile then
 				createMobileButton(moduleapi, Vector2.new(tab.X, tab.Y))
@@ -6096,6 +6298,7 @@ function mainapi:CreateCategory(categorysettings)
 		moduleapi.Object = modulebutton
 		mainapi.Modules[modulesettings.Name] = moduleapi
 		moduleapi:ApplyAccessState()
+		if type(moduleapi.ApplyTheme) == 'function' then pcall(function() moduleapi:ApplyTheme() end) end
 
 		local sorting = {}
 		for _, v in mainapi.Modules do
@@ -7056,6 +7259,16 @@ function mainapi:CreateSearch()
 	end)
 
 	self.Legit.Icon = legiticon
+	self.SearchObjects = {
+		Root = searchbkg,
+		Icon = searchicon,
+		Legit = legiticon,
+		LegitDivider = legitdivider,
+		TextBox = search,
+		Children = children,
+		Divider = divider
+	}
+	if self.RefreshSearchTheme then pcall(function() self:RefreshSearchTheme() end) end
 end
 
 function mainapi:CreateLegit()
@@ -8219,10 +8432,16 @@ general:CreateButton({
 general:CreateButton({
 	Name = 'Reinject',
 	Function = function()
+		local reload = pload
+		pcall(function() mainapi:Uninject() end)
 		shared.vapereload = true
-		pload('NewMainScript.lua', true)
+		task.defer(function()
+			if type(reload) == 'function' then
+				reload('NewMainScript.lua', true)
+			end
+		end)
 	end,
-	Tooltip = 'Reloads Silentware for debugging purposes'
+	Tooltip = 'Self-destructs the current Silentware instance, then reloads a fresh one.'
 })
 
 --[[
@@ -8446,7 +8665,15 @@ local generateKeyButton = accesspane:CreateButton({
 		end
 		if ok then
 			if targetkey and targetkey.SetValue then pcall(function() targetkey:SetValue(generated) end) end
-			mainapi:CreateNotification('Key generated', tostring(generated), 10, 'info')
+			local copied = false
+			pcall(function()
+				local copyFunction = setclipboard or toclipboard or (Clipboard and Clipboard.set)
+				if type(copyFunction) == 'function' then
+					copyFunction(tostring(generated))
+					copied = true
+				end
+			end)
+			mainapi:CreateNotification('Key generated', tostring(generated)..(copied and '\nCopied to clipboard.' or '\nCopy it manually; clipboard unavailable.'), 10, 'info')
 		else
 			mainapi:CreateNotification('Generate failed', tostring(generated), 7, 'alert')
 		end
