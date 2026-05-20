@@ -746,11 +746,159 @@ local function isThemePreviewObject(obj)
 	return false
 end
 
+
+local function isSettingsPaneObject(obj)
+	local parent = obj
+	while parent do
+		if parent.Name == 'Children' and parent.Parent and parent.Parent.ZIndex and parent.Parent.ZIndex >= 32 then return true end
+		if parent.ZIndex and parent.ZIndex >= 32 and parent.Name ~= 'SettingsFocusScrim' then return true end
+		parent = parent.Parent
+	end
+	return false
+end
+
+local function restyleControlObject(obj)
+	if not obj or not obj.Parent or isThemePreviewObject(obj) then return end
+	local accent = getAccentColor()
+	if obj:IsA('ScrollingFrame') then
+		obj.ScrollBarImageColor3 = uipallet.Accent
+		if obj.Name == 'Children' and obj.Parent and obj.Parent.ZIndex and obj.Parent.ZIndex >= 32 then
+			obj.BackgroundColor3 = uipallet.Surface
+		end
+	elseif obj:IsA('TextLabel') then
+		if obj.Name == 'VapeLogo' then
+			obj.TextColor3 = uipallet.Text
+		elseif obj.Name == 'Version' or obj.Name == 'Subtitle' or obj.Name == 'Description' or obj.Name == 'Items' then
+			obj.TextColor3 = uipallet.MutedText
+		else
+			obj.TextColor3 = obj.TextTransparency < 1 and uipallet.Text or obj.TextColor3
+		end
+		if obj.BackgroundTransparency < 1 then
+			obj.BackgroundColor3 = color.Light(uipallet.Surface, 0.018)
+		end
+	elseif obj:IsA('TextBox') then
+		obj.TextColor3 = uipallet.Text
+		obj.PlaceholderColor3 = uipallet.MutedText
+	elseif obj:IsA('TextButton') then
+		if obj.Name == 'Dropdown' or obj.Name == 'TextList' then
+			obj.BackgroundColor3 = uipallet.Surface
+		elseif obj.Name:find('Button') or obj.Name:find('Dropdown') or obj.Name:find('TextBox') or obj.Name:find('Toggle') or obj.Name:find('Slider') or obj.Name:find('TextList') then
+			obj.BackgroundColor3 = color.Dark(uipallet.Surface, 0.01)
+		elseif obj.ZIndex and obj.ZIndex >= 32 then
+			obj.BackgroundColor3 = uipallet.Surface
+		end
+		if obj.Text ~= '' and obj.TextTransparency < 1 then
+			obj.TextColor3 = uipallet.Text
+		end
+	elseif obj:IsA('Frame') then
+		if obj.Name == 'PremiumMainWindow' then
+			obj.BackgroundColor3 = uipallet.Surface
+		elseif obj.Name == 'Sidebar' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.015)
+		elseif obj.Name == 'Content' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.012)
+		elseif obj.Name == 'SettingsFocusScrim' then
+			obj.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+		elseif obj.Name == 'BKG' or obj.Name == 'Card' or obj.Name == 'CardSurface' or obj.Name == 'Overlays' or obj.Name == 'OverlaysWindow' then
+			obj.BackgroundColor3 = uipallet.SurfaceAlt
+		elseif obj.Name == 'Knob' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.12)
+		elseif obj.Name == 'Slider' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
+		elseif obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
+			obj.BackgroundColor3 = accent
+		elseif isSettingsPaneObject(obj) then
+			obj.BackgroundColor3 = uipallet.Surface
+		end
+	elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
+		if obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or obj.Name:find('Glow') or obj.Name:find('Accent') then
+			obj.ImageColor3 = uipallet.AccentGlow or accent
+		elseif obj.Name == 'Arrow' or obj.Name == 'Expand' or obj.Name == 'Back' then
+			obj.ImageColor3 = uipallet.MutedText
+		end
+	elseif obj:IsA('UIStroke') then
+		if obj.Name == 'GlowStroke' or (obj.Parent and (obj.Parent.Name:find('Pill') or obj.Parent.Name:find('Accent') or obj.Parent.Name:find('Tier'))) then
+			obj.Color = uipallet.Accent
+		else
+			obj.Color = uipallet.Border
+		end
+	end
+end
+
+local function repaintEveryControl()
+	if notifications then
+		for _, obj in notifications:GetDescendants() do
+			restyleControlObject(obj)
+		end
+	end
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			restyleControlObject(obj)
+		end
+	end
+	if mainapi.SettingsScrim then
+		mainapi.SettingsScrim.BackgroundColor3 = color.Dark(uipallet.Main, 0.02)
+	end
+	if mainapi.GlassBackdrop then
+		mainapi.GlassBackdrop.BackgroundColor3 = uipallet.Main
+		mainapi.GlassBackdrop.BackgroundTransparency = math.clamp((uipallet.GlassTransparency or 0.08) + 0.55, 0.55, 0.82)
+	end
+end
+
+local function makeRainbowSequence()
+	return ColorSequence.new({
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 82, 153)),
+		ColorSequenceKeypoint.new(0.18, Color3.fromRGB(255, 183, 77)),
+		ColorSequenceKeypoint.new(0.34, Color3.fromRGB(255, 239, 96)),
+		ColorSequenceKeypoint.new(0.52, Color3.fromRGB(77, 238, 166)),
+		ColorSequenceKeypoint.new(0.70, Color3.fromRGB(91, 173, 255)),
+		ColorSequenceKeypoint.new(0.86, Color3.fromRGB(183, 111, 255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 82, 153))
+	})
+end
+
+local function setupRainbowDecor()
+	mainapi.RainbowDecor = mainapi.RainbowDecor or {}
+	local function ensureGradient(obj, name)
+		if not obj then return end
+		local gradient = obj:FindFirstChild(name)
+		if not gradient then
+			gradient = Instance.new('UIGradient')
+			gradient.Name = name
+			gradient.Parent = obj
+		end
+		gradient.Color = makeRainbowSequence()
+		gradient.Rotation = gradient.Rotation or 0
+		table.insert(mainapi.RainbowDecor, gradient)
+		return gradient
+	end
+	table.clear(mainapi.RainbowDecor)
+	ensureGradient(mainapi.PremiumShell, 'RainbowShellGradient')
+	ensureGradient(mainapi.PremiumTitle, 'RainbowTitleGradient')
+	ensureGradient(mainapi.AccessTierPill, 'RainbowTierGradient')
+	ensureGradient(mainapi.PremiumGlow, 'RainbowGlowGradient')
+end
+
+local function clearRainbowDecor()
+	if gui then
+		for _, obj in gui:GetDescendants() do
+			if obj:IsA('UIGradient') and tostring(obj.Name):find('Rainbow') then
+				obj:Destroy()
+			end
+		end
+	end
+	mainapi.RainbowDecor = {}
+end
+
 local function refreshPremiumTheme()
 	local accent = getAccentColor()
 	if mainapi.PremiumShell then mainapi.PremiumShell.BackgroundColor3 = uipallet.Surface end
 	if mainapi.PremiumSidebar then mainapi.PremiumSidebar.BackgroundColor3 = color.Light(uipallet.Main, 0.015) end
 	if mainapi.PremiumContent then mainapi.PremiumContent.BackgroundColor3 = color.Light(uipallet.Main, 0.012) end
+	if mainapi.PremiumTitleGlow then
+		mainapi.PremiumTitleGlow.TextColor3 = uipallet.AccentGlow or uipallet.Accent
+		mainapi.PremiumTitleGlow.TextTransparency = 0.78
+	end
 	if mainapi.PremiumGlow then
 		mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or accent
 		mainapi.PremiumGlow.ImageTransparency = 0.74
@@ -856,55 +1004,32 @@ local function refreshPremiumTheme()
 			end
 		end
 	end
+	repaintEveryControl()
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 end
 
 local function refreshRainbowThemeFast()
-	local hue = (tick() * 0.055 * (mainapi.RainbowSpeed and mainapi.RainbowSpeed.Value or 1)) % 1
-	mainapi.GUIColor.Hue = hue
-	mainapi.GUIColor.Sat = 0.72
-	mainapi.GUIColor.Value = 0.98
-	uipallet.Accent = Color3.fromHSV(hue, 0.72, 0.98)
-	uipallet.AccentSoft = Color3.fromHSV((hue + 0.08) % 1, 0.64, 0.78)
-	uipallet.AccentGlow = Color3.fromHSV((hue + 0.12) % 1, 0.58, 1)
-	uipallet.ActiveToggle = uipallet.Accent
-	uipallet.NotificationAccent = uipallet.Accent
-	local accent = uipallet.Accent
-	if mainapi.PremiumGlow then
-		mainapi.PremiumGlow.ImageColor3 = uipallet.AccentGlow or accent
-		local st = mainapi.PremiumGlow:FindFirstChild('GlowStroke')
-		if st then st.Color = uipallet.AccentGlow or accent end
+	if not mainapi.RainbowTheme then return end
+	if not mainapi.RainbowDecor or #mainapi.RainbowDecor == 0 then
+		setupRainbowDecor()
 	end
-	if mainapi.AccessTierPill then
-		mainapi.AccessTierPill.TextColor3 = accent
-		local st = mainapi.AccessTierPill:FindFirstChildOfClass('UIStroke')
-		if st then st.Color = accent end
-	end
-	if mainapi.SettingsIcon then mainapi.SettingsIcon.ImageColor3 = accent end
-	if mainapi.OverlaysIcon then mainapi.OverlaysIcon.ImageColor3 = accent end
-	if gui then
-		for _, obj in gui:GetDescendants() do
-			if not isThemePreviewObject(obj) then
-				if obj:IsA('Frame') then
-					if obj.Name == 'AccentLine' or obj.Name == 'AccentBar' or obj.Name == 'InnerAccentGlow' or obj.Name == 'Fill' or obj.Name == 'MiniAccent' or obj.Name == 'SelectionPip' then
-						obj.BackgroundColor3 = accent
-					end
-				elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
-					if obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or obj.Name:find('Glow') or obj.Name:find('Accent') then
-						obj.ImageColor3 = accent
-					end
-				elseif obj:IsA('UIStroke') and obj.Name == 'GlowStroke' then
-					obj.Color = accent
-				end
-			end
+	local rotation = (tick() * 28) % 360
+	for _, gradient in mainapi.RainbowDecor do
+		if gradient and gradient.Parent then
+			gradient.Rotation = rotation
 		end
 	end
-	pcall(function() mainapi:UpdateGUI(hue, 0.72, 0.98, true) end)
 end
 
 function mainapi:ApplyThemePreset(presetName)
 	local preset = applyThemeToPalette(presetName)
+	if mainapi.RainbowTheme then
+		setupRainbowDecor()
+	else
+		clearRainbowDecor()
+	end
 	refreshPremiumTheme()
+	repaintEveryControl()
 	pcall(function()
 		if writefile then writefile('vape/SilentwareTheme.txt', tostring(presetName)) end
 	end)
@@ -1833,6 +1958,10 @@ local components
 components = {
 	Button = function(optionsettings, children, api)
 		optionsettings.Function = hookCF(optionsettings.Function, optionsettings)
+		local optionapi = {
+			Type = 'Button',
+			Index = api and getTableSize(api.Options or {}) or 0
+		}
 		local button = Instance.new('TextButton')
 		button.Name = optionsettings.Name..'Button'
 		button.Size = UDim2.new(1, 0, 0, 40)
@@ -1872,6 +2001,14 @@ components = {
 			})
 		end)
 		button.MouseButton1Click:Connect(optionsettings.Function)
+		optionapi.Object = button
+		function optionapi:SetVisible(state)
+			button.Visible = state == true
+		end
+		if api and api.Options then
+			api.Options[optionsettings.Name] = optionapi
+		end
+		return compatOption(optionapi)
 	end,
 	ColorSlider = function(optionsettings, children, api)
 		optionsettings.Function = hookCF(optionsettings.Function, optionsettings)
@@ -3822,7 +3959,7 @@ task.spawn(function()
 		if mainapi.RainbowTheme then
 			refreshRainbowThemeFast()
 		end
-		task.wait(mainapi.RainbowTheme and 0.38 or 0.55)
+		task.wait(mainapi.RainbowTheme and 0.12 or 0.55)
 	end
 end)
 
@@ -3934,7 +4071,15 @@ function mainapi:CreateGUI()
 	logo.TextSize = 20
 	logo.FontFace = uipallet.FontSemiBold
 	logo.Parent = topbar
-
+	mainapi.PremiumTitle = logo
+	local logoGlowText = logo:Clone()
+	logoGlowText.Name = 'VapeLogoGlow'
+	logoGlowText.TextColor3 = uipallet.AccentGlow or uipallet.Accent
+	logoGlowText.TextTransparency = 0.78
+	logoGlowText.Position = logo.Position + UDim2.fromOffset(1, 0)
+	logoGlowText.ZIndex = math.max((logo.ZIndex or 1) - 1, 1)
+	logoGlowText.Parent = topbar
+	mainapi.PremiumTitleGlow = logoGlowText
 
 	local subtitle = Instance.new('TextLabel')
 	subtitle.Name = 'Subtitle'
@@ -3951,7 +4096,7 @@ function mainapi:CreateGUI()
 	local tierpill = Instance.new('TextLabel')
 	tierpill.Name = 'AccessTierPill'
 	tierpill.Size = UDim2.fromOffset(92, 22)
-	tierpill.Position = UDim2.fromOffset(128, 18)
+	tierpill.Position = UDim2.fromOffset(126, 18)
 	tierpill.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
 	tierpill.BackgroundTransparency = 0.12
 	tierpill.BorderSizePixel = 0
@@ -4705,9 +4850,10 @@ function mainapi:CreateGUI()
 			settingspane.Visible = true
 			paneScale.Scale = 0.96
 			settingspane.BackgroundColor3 = uipallet.Surface
-			settingspane.BackgroundTransparency = 0.12
+			settingspane.BackgroundTransparency = math.clamp((uipallet.GlassTransparency or 0.08) + 0.04, 0.06, 0.18)
+			repaintEveryControl()
 			tween:Tween(paneScale, uipallet.OpenTween, {Scale = 1})
-			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = math.min(uipallet.PanelTransparency or 0.02, 0.035)})
+			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = math.clamp((uipallet.PanelTransparency or 0.02) + 0.015, 0.025, 0.10)})
 		end
 
 		local function hideSettingsPane()
@@ -8018,76 +8164,75 @@ end
 	Access / Admin Settings
 ]]
 
-local accesspane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Access & Admin'})
-local tierText = accesspane:CreateButton({
-	Name = 'Current tier: '..tostring((access.DisplayNames and access.DisplayNames[access.Tier]) or access.Tier or 'Free'),
+local accesspane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Access'})
+local tierText
+local function getAccessDisplay(currentAccess)
+	currentAccess = currentAccess or shared.SilentwareAccess or access
+	return tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier or 'Free')
+end
+local function updateAccessVisuals(currentAccess)
+	currentAccess = currentAccess or shared.SilentwareAccess or access
+	if mainapi.AccessTierPill then
+		mainapi.AccessTierPill.Text = getAccessDisplay(currentAccess)
+	end
+	if tierText and tierText.Object then
+		local label = tierText.Object:FindFirstChildWhichIsA('Frame') and tierText.Object:FindFirstChildWhichIsA('Frame'):FindFirstChildWhichIsA('TextLabel')
+		if label then label.Text = 'Current tier: '..getAccessDisplay(currentAccess) end
+	end
+	mainapi:RefreshAccessLocks()
+	repaintEveryControl()
+end
+tierText = accesspane:CreateButton({
+	Name = 'Current tier: '..getAccessDisplay(access),
 	Function = function()
 		mainapi:CreateNotification('Access tier', 'Current tier: '..tostring((shared.SilentwareAccess and shared.SilentwareAccess.Tier) or 'free'), 4)
 	end,
 	Tooltip = 'Shows your active Silentware access tier.'
 })
+local storedKey = nil
+pcall(function()
+	local currentAccess = shared.SilentwareAccess or access
+	if type(currentAccess) == 'table' and type(currentAccess.GetStoredKey) == 'function' then
+		storedKey = currentAccess:GetStoredKey()
+	end
+end)
 local keybox = accesspane:CreateTextBox({
 	Name = 'Access key',
-	Placeholder = 'Paste standard / premium / beta key',
-	Tooltip = 'Stored locally in vape/SilentwareKey.txt when checked.'
+	Default = storedKey or '',
+	Placeholder = 'Paste whitelist or admin key',
+	Tooltip = 'Whitelist keys are stored locally and checked automatically on startup. Admin keys only unlock admin tools.'
 })
-accesspane:CreateButton({
-	Name = 'Check access key',
-	Function = function()
-		local currentAccess = shared.SilentwareAccess or access
-		if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
-			local ok, err = pcall(function()
-				currentAccess:CheckKey(keybox.Value)
-			end)
-			if ok then
-				mainapi.Access = currentAccess
-				if mainapi.AccessTierPill then mainapi.AccessTierPill.Text = tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier) end
-				mainapi:RefreshAccessLocks()
-				mainapi:CreateNotification('Access updated', 'Tier: '..tostring((currentAccess.DisplayNames and currentAccess.DisplayNames[currentAccess.Tier]) or currentAccess.Tier), 5)
-			else
-				mainapi:CreateNotification('Access failed', tostring(err), 6, 'alert')
-			end
-		else
-			mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
+local adminControls = {}
+local function setAdminToolsVisible(state)
+	for _, control in adminControls do
+		if control and control.Object then
+			control.Object.Visible = state == true
+		elseif typeof(control) == 'Instance' and control:IsA('GuiObject') then
+			control.Visible = state == true
 		end
-	end,
-	Tooltip = 'Checks the configured access website/file and unlocks your tier if valid.'
-})
-local adminkey = accesspane:CreateTextBox({
-	Name = 'Admin key',
-	Placeholder = 'Paste admin key',
-	Tooltip = 'Admin actions require a configured backend endpoint. Do not hardcode real admin keys in the client.'
-})
+	end
+	if state then repaintEveryControl() end
+end
 local targetkey = accesspane:CreateTextBox({
 	Name = 'Target key/user',
 	Placeholder = 'Key or Roblox user id',
 	Tooltip = 'Key or user id to grant/revoke from the backend.'
 })
+table.insert(adminControls, targetkey)
 local targettier = accesspane:CreateDropdown({
 	Name = 'Target tier',
 	List = {'free', 'standard', 'premium', 'beta'},
 	Tooltip = 'Tier to grant through the admin backend.'
 })
+table.insert(adminControls, targettier)
 local adminnote = accesspane:CreateTextBox({
 	Name = 'Admin note',
 	Placeholder = 'Optional note / reason',
 	Tooltip = 'Sent to the admin endpoint with grant/revoke requests.'
 })
-accesspane:CreateButton({
-	Name = 'Unlock admin panel',
-	Function = function()
-		local currentAccess = shared.SilentwareAccess or access
-		if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
-			local ok, msg = currentAccess:AdminLogin(adminkey.Value)
-			mainapi:CreateNotification(ok and 'Admin unlocked' or 'Admin locked', tostring(msg), 6, ok and 'info' or 'warning')
-		else
-			mainapi:CreateNotification('Admin unavailable', 'The access library did not load.', 6, 'alert')
-		end
-	end,
-	Tooltip = 'Verifies the admin key against the configured admin endpoint.'
-})
-accesspane:CreateButton({
-	Name = 'Grant target tier',
+table.insert(adminControls, adminnote)
+local grantButton = accesspane:CreateButton({
+	Name = 'Grant whitelist',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
 		local ok, msg = false, 'Access library unavailable.'
@@ -8098,8 +8243,9 @@ accesspane:CreateButton({
 	end,
 	Tooltip = 'Sends a grant request to your admin backend.'
 })
-accesspane:CreateButton({
-	Name = 'Revoke target access',
+table.insert(adminControls, grantButton)
+local revokeButton = accesspane:CreateButton({
+	Name = 'Revoke whitelist',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
 		local ok, msg = false, 'Access library unavailable.'
@@ -8110,7 +8256,8 @@ accesspane:CreateButton({
 	end,
 	Tooltip = 'Sends a revoke request to your admin backend.'
 })
-accesspane:CreateButton({
+table.insert(adminControls, revokeButton)
+local setUserButton = accesspane:CreateButton({
 	Name = 'Set user tier',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
@@ -8122,7 +8269,8 @@ accesspane:CreateButton({
 	end,
 	Tooltip = 'Sends a Roblox user-id tier update to your admin backend.'
 })
-accesspane:CreateButton({
+table.insert(adminControls, setUserButton)
+local webhookButton = accesspane:CreateButton({
 	Name = 'Send test webhook',
 	Function = function()
 		local currentAccess = shared.SilentwareAccess or access
@@ -8134,6 +8282,56 @@ accesspane:CreateButton({
 	end,
 	Tooltip = 'Sends a Discord webhook test if configured. Keep the URL server-side when possible.'
 })
+table.insert(adminControls, webhookButton)
+setAdminToolsVisible((shared.SilentwareAccess or access).AdminAuthed == true)
+accesspane:CreateButton({
+	Name = 'Check access key',
+	Function = function()
+		local currentAccess = shared.SilentwareAccess or access
+		local entered = tostring(keybox.Value or ''):gsub('^%s+', ''):gsub('%s+$', '')
+		if entered == '' then
+			mainapi:CreateNotification('Access failed', 'Enter a whitelist or admin key.', 5, 'warning')
+			return
+		end
+
+		if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
+			local adminOk, adminMsg = currentAccess:AdminLogin(entered)
+			if adminOk then
+				setAdminToolsVisible(true)
+				mainapi:CreateNotification('Admin unlocked', 'Admin tools enabled.', 5, 'info')
+				return
+			end
+		end
+
+		if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
+			local ok, err = pcall(function()
+				currentAccess:CheckKey(entered)
+			end)
+			if ok then
+				mainapi.Access = currentAccess
+				setAdminToolsVisible(false)
+				updateAccessVisuals(currentAccess)
+				mainapi:CreateNotification('Access updated', 'Tier: '..getAccessDisplay(currentAccess), 5)
+			else
+				mainapi:CreateNotification('Access failed', tostring(err), 6, 'alert')
+			end
+		else
+			mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
+		end
+	end,
+	Tooltip = 'Checks a whitelist key or unlocks admin tools when an admin key is entered.'
+})
+task.defer(function()
+	local currentAccess = shared.SilentwareAccess or access
+	if type(currentAccess) == 'table' and type(currentAccess.RefreshAccess) == 'function' and type(currentAccess.GetStoredKey) == 'function' then
+		local stored = currentAccess:GetStoredKey()
+		if stored and stored ~= '' then
+			pcall(function() currentAccess:RefreshAccess(stored) end)
+			if keybox and keybox.SetValue then pcall(function() keybox:SetValue(stored) end) end
+			updateAccessVisuals(currentAccess)
+		end
+	end
+end)
 
 --[[
 	GUI Settings

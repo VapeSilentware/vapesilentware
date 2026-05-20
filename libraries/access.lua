@@ -195,7 +195,8 @@ end
 
 function ACCESS:CheckKey(key)
 	key = key or self:GetStoredKey()
-	if key then self:SaveKey(key) end
+	key = type(key) == 'string' and cleanString(key) or nil
+	if key and key ~= '' then self:SaveKey(key) end
 	local payload = {
 		key = key,
 		userId = lplr and lplr.UserId or 0,
@@ -241,12 +242,23 @@ function ACCESS:CheckKey(key)
 end
 
 function ACCESS:Check()
+	if self.Checking then return self end
+	self.Checking = true
 	local result = self:CheckKey()
+	self.Checking = false
 	self:SendExecutionWebhook('execute')
 	if self.Blocked then
 		notify('Silentware Access', self.Reason, 10)
 	end
 	return result
+end
+
+function ACCESS:AutoCheckStoredKey()
+	local stored = self:GetStoredKey()
+	if stored and stored ~= '' then
+		return self:CheckKey(stored)
+	end
+	return self
 end
 
 function ACCESS:GetRequiredTier(category, moduleName)
