@@ -757,30 +757,63 @@ local function isSettingsPaneObject(obj)
 	return false
 end
 
+local function getSilentwareRole(obj)
+	local ok, role = pcall(function()
+		return obj and obj.GetAttribute and obj:GetAttribute('SilentwareRole')
+	end)
+	return ok and role or nil
+end
+
+local function styleManagedStroke(parent, strokeColor, transparency)
+	local stroke = parent and parent:FindFirstChildOfClass('UIStroke')
+	if stroke then
+		stroke.Color = strokeColor or uipallet.Border
+		if transparency ~= nil then stroke.Transparency = transparency end
+	end
+end
+
 local function restyleControlObject(obj)
 	if not obj or not obj.Parent or isThemePreviewObject(obj) then return end
 	local accent = getAccentColor()
+	local role = getSilentwareRole(obj)
 	if obj:IsA('ScrollingFrame') then
 		obj.ScrollBarImageColor3 = uipallet.Accent
 		if obj.Name == 'Children' and obj.Parent and obj.Parent.ZIndex and obj.Parent.ZIndex >= 32 then
 			obj.BackgroundColor3 = uipallet.Surface
 		end
 	elseif obj:IsA('TextLabel') then
-		if obj.Name == 'VapeLogo' then
+		if role == 'TierLock' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.1)
+			obj.TextColor3 = uipallet.Accent
+			styleManagedStroke(obj, uipallet.Accent, 0.44)
+		elseif obj.Name == 'AccessTierPill' then
+			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
+			obj.TextColor3 = uipallet.Accent
+			styleManagedStroke(obj, uipallet.Accent, 0.42)
+		elseif obj.Name == 'VapeLogo' then
 			obj.TextColor3 = uipallet.Text
 		elseif obj.Name == 'Version' or obj.Name == 'Subtitle' or obj.Name == 'Description' or obj.Name == 'Items' then
 			obj.TextColor3 = uipallet.MutedText
 		else
 			obj.TextColor3 = obj.TextTransparency < 1 and uipallet.Text or obj.TextColor3
 		end
-		if obj.BackgroundTransparency < 1 then
+		if obj.BackgroundTransparency < 1 and role ~= 'TierLock' and obj.Name ~= 'AccessTierPill' then
 			obj.BackgroundColor3 = color.Light(uipallet.Surface, 0.018)
 		end
 	elseif obj:IsA('TextBox') then
 		obj.TextColor3 = uipallet.Text
 		obj.PlaceholderColor3 = uipallet.MutedText
 	elseif obj:IsA('TextButton') then
-		if obj.Name == 'Dropdown' or obj.Name == 'TextList' then
+		if role == 'SettingsNavButton' then
+			obj.BackgroundColor3 = uipallet.SurfaceAlt
+			obj.BackgroundTransparency = 0.08
+			if obj.Text ~= '' and obj.TextTransparency < 1 then obj.TextColor3 = color.Dark(uipallet.Text, 0.12) end
+			styleManagedStroke(obj, uipallet.Border, 0.58)
+		elseif role == 'SettingsPane' or role == 'SettingsRoot' then
+			obj.BackgroundColor3 = uipallet.Surface
+			obj.BackgroundTransparency = math.clamp((uipallet.PanelTransparency or 0.03) + 0.01, 0.025, 0.12)
+			styleManagedStroke(obj, uipallet.Border, 0.26)
+		elseif obj.Name == 'Dropdown' or obj.Name == 'TextList' then
 			obj.BackgroundColor3 = uipallet.Surface
 		elseif obj.Name:find('Button') or obj.Name:find('Dropdown') or obj.Name:find('TextBox') or obj.Name:find('Toggle') or obj.Name:find('Slider') or obj.Name:find('TextList') then
 			obj.BackgroundColor3 = color.Dark(uipallet.Surface, 0.01)
@@ -791,7 +824,12 @@ local function restyleControlObject(obj)
 			obj.TextColor3 = uipallet.Text
 		end
 	elseif obj:IsA('Frame') then
-		if obj.Name == 'PremiumMainWindow' then
+		if role == 'SettingsDivider' or obj.Name == 'Divider' then
+			obj.BackgroundColor3 = uipallet.Border
+		elseif role == 'SettingsCard' then
+			obj.BackgroundColor3 = uipallet.SurfaceAlt
+			styleManagedStroke(obj, uipallet.Border, 0.58)
+		elseif obj.Name == 'PremiumMainWindow' then
 			obj.BackgroundColor3 = uipallet.Surface
 		elseif obj.Name == 'Sidebar' then
 			obj.BackgroundColor3 = color.Light(uipallet.Main, 0.015)
@@ -811,13 +849,18 @@ local function restyleControlObject(obj)
 			obj.BackgroundColor3 = uipallet.Surface
 		end
 	elseif obj:IsA('ImageLabel') or obj:IsA('ImageButton') then
-		if obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or obj.Name:find('Glow') or obj.Name:find('Accent') then
+		if obj.Name == 'Dots' or role == 'ModuleDots' then
+			obj.ImageColor3 = uipallet.Accent
+		elseif role == 'SettingsArrow' then
+			obj.ImageColor3 = uipallet.Accent
+		elseif obj.Name == 'SettingsIcon' or obj.Name == 'OverlaysButtonIcon' or obj.Name == 'OverlayMenuIcon' or obj.Name == 'BindIcon' or obj.Name:find('Glow') or obj.Name:find('Accent') then
 			obj.ImageColor3 = uipallet.AccentGlow or accent
 		elseif obj.Name == 'Arrow' or obj.Name == 'Expand' or obj.Name == 'Back' then
 			obj.ImageColor3 = uipallet.MutedText
 		end
 	elseif obj:IsA('UIStroke') then
-		if obj.Name == 'GlowStroke' or (obj.Parent and (obj.Parent.Name:find('Pill') or obj.Parent.Name:find('Accent') or obj.Parent.Name:find('Tier'))) then
+		local parentRole = getSilentwareRole(obj.Parent)
+		if parentRole == 'TierLock' or obj.Name == 'GlowStroke' or (obj.Parent and (obj.Parent.Name:find('Pill') or obj.Parent.Name:find('Accent') or obj.Parent.Name:find('Tier'))) then
 			obj.Color = uipallet.Accent
 		else
 			obj.Color = uipallet.Border
@@ -1013,7 +1056,7 @@ local function refreshRainbowThemeFast()
 	if not mainapi.RainbowDecor or #mainapi.RainbowDecor == 0 then
 		setupRainbowDecor()
 	end
-	local rotation = (tick() * 28) % 360
+	local rotation = (tick() * 7) % 360
 	for _, gradient in mainapi.RainbowDecor do
 		if gradient and gradient.Parent then
 			gradient.Rotation = rotation
@@ -1030,6 +1073,10 @@ function mainapi:ApplyThemePreset(presetName)
 	end
 	refreshPremiumTheme()
 	repaintEveryControl()
+	task.defer(function()
+		repaintEveryControl()
+		pcall(function() mainapi:RefreshAccessLocks() end)
+	end)
 	pcall(function()
 		if writefile then writefile('vape/SilentwareTheme.txt', tostring(presetName)) end
 	end)
@@ -2477,6 +2524,7 @@ components = {
 		addCorner(button, UDim.new(0, 7))
 		local arrow = Instance.new('ImageLabel')
 		arrow.Name = 'Arrow'
+		arrow:SetAttribute('SilentwareRole', 'SettingsArrow')
 		arrow.Size = UDim2.fromOffset(4, 8)
 		arrow.Position = UDim2.new(1, -17, 0, 11)
 		arrow.BackgroundTransparency = 1
@@ -3899,6 +3947,7 @@ components = {
 	Divider = function(children, text)
 		local divider = Instance.new('Frame')
 		divider.Name = 'Divider'
+		divider:SetAttribute('SilentwareRole', 'SettingsDivider')
 		divider.Size = UDim2.new(1, 0, 0, 1)
 		divider.BackgroundColor3 = color.Light(uipallet.Main, 0.08)
 		divider.BorderSizePixel = 0
@@ -3942,15 +3991,21 @@ mainapi.Components = setmetatable(components, {
 
 task.spawn(function()
 	repeat
-		local hue = tick() * (0.2 * mainapi.RainbowSpeed.Value) % 1
-		for _, v in mainapi.RainbowTable do
-			if v.Type == 'GUISlider' then
-				v:SetValue(mainapi:Color(hue))
-			else
-				v:SetValue(hue)
+		-- Legacy manual rainbow color sliders are disabled in the premium theme system.
+		-- Do not run the old 60hz full-table recolor loop unless an older config explicitly enables it.
+		if mainapi.GUIColor and mainapi.GUIColor.Rainbow == true and #mainapi.RainbowTable > 0 then
+			local hue = tick() * (0.2 * (mainapi.RainbowSpeed.Value or 1)) % 1
+			for _, v in mainapi.RainbowTable do
+				if v.Type == 'GUISlider' then
+					v:SetValue(mainapi:Color(hue))
+				else
+					v:SetValue(hue)
+				end
 			end
+			task.wait(math.max(0.35, 1 / math.max(mainapi.RainbowUpdateSpeed.Value or 2, 1)))
+		else
+			task.wait(1.25)
 		end
-		task.wait(1 / mainapi.RainbowUpdateSpeed.Value)
 	until mainapi.Loaded == nil
 end)
 
@@ -3959,7 +4014,7 @@ task.spawn(function()
 		if mainapi.RainbowTheme then
 			refreshRainbowThemeFast()
 		end
-		task.wait(mainapi.RainbowTheme and 0.12 or 0.55)
+		task.wait(mainapi.RainbowTheme and 0.85 or 1.25)
 	end
 end)
 
@@ -4223,6 +4278,7 @@ function mainapi:CreateGUI()
 	settingspane.BackgroundColor3 = uipallet.Surface
 	settingspane.BackgroundTransparency = uipallet.PanelTransparency or 0.02
 	settingspane.AutoButtonColor = false
+	settingspane:SetAttribute('SilentwareRole', 'SettingsRoot')
 	settingspane.Visible = false
 	settingspane.Text = ''
 	settingspane.Parent = shell
@@ -4268,6 +4324,7 @@ function mainapi:CreateGUI()
 	settingsScale.Parent = settingspane
 	local settingschildren = Instance.new('ScrollingFrame')
 	settingschildren.Name = 'Children'
+	settingschildren:SetAttribute('SilentwareRole', 'SettingsChildren')
 	settingschildren.Size = UDim2.new(1, -24, 1, -72)
 	settingschildren.Position = UDim2.fromOffset(12, 46)
 	settingschildren.BackgroundColor3 = uipallet.Surface
@@ -4292,6 +4349,7 @@ function mainapi:CreateGUI()
 
 		local button = Instance.new('TextButton')
 		button.Name = 'RebindGuiButton'
+		button:SetAttribute('SilentwareRole', 'SettingsNavButton')
 		button.Size = UDim2.fromOffset(220, 40)
 		button.BackgroundColor3 = uipallet.SurfaceAlt
 		button.BorderSizePixel = 0
@@ -4581,6 +4639,7 @@ function mainapi:CreateGUI()
 		local close = addCloseButton(window, 7)
 		local divider = Instance.new('Frame')
 		divider.Name = 'Divider'
+		divider:SetAttribute('SilentwareRole', 'SettingsDivider')
 		divider.Size = UDim2.new(1, 0, 0, 1)
 		divider.Position = UDim2.fromOffset(0, 37)
 		divider.BackgroundColor3 = uipallet.Border
@@ -4740,6 +4799,7 @@ function mainapi:CreateGUI()
 
 		local button = Instance.new('TextButton')
 		button.Name = categorysettings.Name
+		button:SetAttribute('SilentwareRole', 'SettingsNavButton')
 		button.Size = UDim2.fromOffset(220, 42)
 		button.BackgroundColor3 = uipallet.SurfaceAlt
 		button.BorderSizePixel = 0
@@ -4753,6 +4813,7 @@ function mainapi:CreateGUI()
 		styleShell(button, UDim.new(0, 8), 0.66)
 		local arrow = Instance.new('ImageLabel')
 		arrow.Name = 'Arrow'
+		arrow:SetAttribute('SilentwareRole', 'SettingsArrow')
 		arrow.Size = UDim2.fromOffset(4, 8)
 		arrow.Position = UDim2.new(1, -20, 0, 16)
 		arrow.BackgroundTransparency = 1
@@ -4760,6 +4821,7 @@ function mainapi:CreateGUI()
 		arrow.ImageColor3 = color.Light(uipallet.Main, 0.37)
 		arrow.Parent = button
 		local settingspane = Instance.new('TextButton')
+		settingspane:SetAttribute('SilentwareRole', 'SettingsPane')
 		settingspane.Size = UDim2.fromOffset(486, 438)
 		settingspane.AnchorPoint = Vector2.new(0.5, 0.5)
 		settingspane.Position = UDim2.fromScale(0.5, 0.5)
@@ -4799,6 +4861,7 @@ function mainapi:CreateGUI()
 		paneScale.Parent = settingspane
 		local settingschildren = Instance.new('ScrollingFrame')
 		settingschildren.Name = 'Children'
+		settingschildren:SetAttribute('SilentwareRole', 'SettingsChildren')
 		settingschildren.Size = UDim2.new(1, -24, 1, -62)
 		settingschildren.Position = UDim2.fromOffset(12, 48)
 		settingschildren.BackgroundColor3 = uipallet.Surface
@@ -4808,6 +4871,7 @@ function mainapi:CreateGUI()
 		configureScroll(settingschildren, 4, 0.42)
 		local divider = Instance.new('Frame')
 		divider.Name = 'Divider'
+		divider:SetAttribute('SilentwareRole', 'SettingsDivider')
 		divider.Size = UDim2.new(1, 0, 0, 1)
 		divider.BackgroundColor3 = uipallet.Border
 		divider.BackgroundTransparency = 0.62
@@ -4851,6 +4915,9 @@ function mainapi:CreateGUI()
 			paneScale.Scale = 0.96
 			settingspane.BackgroundColor3 = uipallet.Surface
 			settingspane.BackgroundTransparency = math.clamp((uipallet.GlassTransparency or 0.08) + 0.04, 0.06, 0.18)
+			for _, obj in settingspane:GetDescendants() do
+				restyleControlObject(obj)
+			end
 			repaintEveryControl()
 			tween:Tween(paneScale, uipallet.OpenTween, {Scale = 1})
 			tween:Tween(settingspane, uipallet.OpenTween, {BackgroundTransparency = math.clamp((uipallet.PanelTransparency or 0.02) + 0.015, 0.025, 0.10)})
@@ -5561,6 +5628,7 @@ function mainapi:CreateCategory(categorysettings)
 
 		local lockbadge = Instance.new('TextLabel')
 		lockbadge.Name = 'TierLock'
+		lockbadge:SetAttribute('SilentwareRole', 'TierLock')
 		lockbadge.Size = UDim2.fromOffset(78, 22)
 		lockbadge.Position = UDim2.new(1, -118, 0, 13)
 		lockbadge.BackgroundColor3 = color.Light(uipallet.Main, 0.1)
@@ -5641,11 +5709,12 @@ function mainapi:CreateCategory(categorysettings)
 		dotsbutton.Parent = modulebutton
 		local dots = Instance.new('ImageLabel')
 		dots.Name = 'Dots'
+		dots:SetAttribute('SilentwareRole', 'ModuleDots')
 		dots.Size = UDim2.fromOffset(3, 16)
 		dots.Position = UDim2.fromOffset(7, 14)
 		dots.BackgroundTransparency = 1
 		dots.Image = getcustomasset('vape/assets/dots.png')
-		dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+		dots.ImageColor3 = uipallet.Accent
 		dots.Parent = dotsbutton
 		modulechildren.Name = modulesettings.Name..'Children'
 		modulechildren.Size = UDim2.new(1, 0, 0, 0)
@@ -5661,6 +5730,7 @@ function mainapi:CreateCategory(categorysettings)
 		styleListLayout(windowlist, 3)
 		local divider = Instance.new('Frame')
 		divider.Name = 'Divider'
+		divider:SetAttribute('SilentwareRole', 'SettingsDivider')
 		divider.Size = UDim2.new(1, 0, 0, 1)
 		divider.Position = UDim2.new(0, 0, 1, -1)
 		divider.BackgroundColor3 = Color3.new(0.19, 0.19, 0.19)
@@ -5676,7 +5746,11 @@ function mainapi:CreateCategory(categorysettings)
 			self.Locked = not allowed
 			self.RequiredTier = requiredTier or 'free'
 			lockbadge.Text = string.upper(tostring(self.RequiredTier))
+			lockbadge.BackgroundColor3 = color.Light(uipallet.Main, 0.1)
+			lockbadge.TextColor3 = uipallet.Accent
+			styleManagedStroke(lockbadge, uipallet.Accent, 0.44)
 			lockbadge.Visible = self.Locked
+			dots.ImageColor3 = self.Enabled and color.Dark(uipallet.Surface, 0.08) or uipallet.Accent
 			if self.Locked then
 				modulebutton.TextColor3 = color.Dark(uipallet.MutedText, 0.18)
 				modulebutton.BackgroundColor3 = color.Dark(uipallet.SurfaceAlt, 0.03)
@@ -5766,7 +5840,7 @@ function mainapi:CreateCategory(categorysettings)
 				moduleStroke.Color = self.Enabled and getAccentColor() or uipallet.Border
 				moduleStroke.Transparency = self.Enabled and 0.25 or 0.66
 			end
-			dots.ImageColor3 = self.Enabled and Color3.fromRGB(50, 50, 50) or color.Light(uipallet.Main, 0.37)
+			dots.ImageColor3 = self.Enabled and color.Dark(uipallet.Surface, 0.08) or uipallet.Accent
 			bindicon.ImageColor3 = color.Dark(uipallet.Text, 0.43)
 			bindtext.TextColor3 = color.Dark(uipallet.Text, 0.43)
 			if not self.Enabled then
@@ -5818,7 +5892,7 @@ function mainapi:CreateCategory(categorysettings)
 		end)
 		dotsbutton.MouseLeave:Connect(function()
 			if not moduleapi.Enabled then
-				dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+				dots.ImageColor3 = uipallet.Accent
 			end
 		end)
 		dotsbutton.MouseButton1Click:Connect(function()
@@ -6058,7 +6132,7 @@ function mainapi:CreateOverlay(categorysettings)
 	dots.Position = UDim2.fromOffset(7, 14)
 	dots.BackgroundTransparency = 1
 	dots.Image = getcustomasset('vape/assets/dots.png')
-	dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+	dots.ImageColor3 = uipallet.Accent
 	dots.Parent = dotsbutton
 	local customchildren = Instance.new('Frame')
 	customchildren.Name = 'CustomChildren'
@@ -6138,7 +6212,7 @@ function mainapi:CreateOverlay(categorysettings)
 	end)
 	dotsbutton.MouseLeave:Connect(function()
 		if not children.Visible then
-			dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+			dots.ImageColor3 = uipallet.Accent
 		end
 	end)
 	dotsbutton.MouseButton1Click:Connect(function()
@@ -6393,7 +6467,7 @@ function mainapi:CreateCategoryList(categorysettings)
 				dots.Position = UDim2.fromOffset(10, 9)
 				dots.BackgroundTransparency = 1
 				dots.Image = getcustomasset('vape/assets/dots.png')
-				dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+				dots.ImageColor3 = uipallet.Accent
 				dots.Parent = dotsbutton
 				local bind = Instance.new('TextButton')
 				addTooltip(bind, 'Click to bind')
@@ -6469,7 +6543,7 @@ function mainapi:CreateCategoryList(categorysettings)
 				end)
 				dotsbutton.MouseLeave:Connect(function()
 					if v.Name ~= mainapi.Profile then
-						dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+						dots.ImageColor3 = uipallet.Accent
 					end
 				end)
 				dotsbutton.MouseButton1Click:Connect(function()
@@ -6965,7 +7039,7 @@ function mainapi:CreateLegit()
 		dots.Position = UDim2.fromOffset(6, 6)
 		dots.BackgroundTransparency = 1
 		dots.Image = getcustomasset('vape/assets/dots.png')
-		dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+		dots.ImageColor3 = uipallet.Accent
 		dots.Parent = dotsbutton
 		local shadow = Instance.new('TextButton')
 		shadow.Name = 'Shadow'
@@ -7089,7 +7163,7 @@ function mainapi:CreateLegit()
 			dots.ImageColor3 = uipallet.Text
 		end)
 		dotsbutton.MouseLeave:Connect(function()
-			dots.ImageColor3 = color.Light(uipallet.Main, 0.37)
+			dots.ImageColor3 = uipallet.Accent
 		end)
 		module.MouseEnter:Connect(function()
 			if not moduleapi.Enabled then
@@ -8287,36 +8361,47 @@ setAdminToolsVisible((shared.SilentwareAccess or access).AdminAuthed == true)
 accesspane:CreateButton({
 	Name = 'Check access key',
 	Function = function()
-		local currentAccess = shared.SilentwareAccess or access
-		local entered = tostring(keybox.Value or ''):gsub('^%s+', ''):gsub('%s+$', '')
-		if entered == '' then
-			mainapi:CreateNotification('Access failed', 'Enter a whitelist or admin key.', 5, 'warning')
-			return
-		end
-
-		if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
-			local adminOk, adminMsg = currentAccess:AdminLogin(entered)
-			if adminOk then
-				setAdminToolsVisible(true)
-				mainapi:CreateNotification('Admin unlocked', 'Admin tools enabled.', 5, 'info')
+		local safe, safeErr = pcall(function()
+			local currentAccess = shared.SilentwareAccess or access
+			local entered = tostring(keybox.Value or ''):gsub('^%s+', ''):gsub('%s+$', '')
+			if entered == '' then
+				mainapi:CreateNotification('Access failed', 'Enter a whitelist or admin key.', 5, 'warning')
 				return
 			end
-		end
 
-		if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
-			local ok, err = pcall(function()
-				currentAccess:CheckKey(entered)
-			end)
-			if ok then
-				mainapi.Access = currentAccess
-				setAdminToolsVisible(false)
-				updateAccessVisuals(currentAccess)
-				mainapi:CreateNotification('Access updated', 'Tier: '..getAccessDisplay(currentAccess), 5)
-			else
-				mainapi:CreateNotification('Access failed', tostring(err), 6, 'alert')
+			if type(currentAccess) == 'table' and type(currentAccess.AdminLogin) == 'function' then
+				local adminOk = false
+				local okAdmin = pcall(function()
+					local result = currentAccess:AdminLogin(entered)
+					adminOk = result == true
+				end)
+				if okAdmin and adminOk then
+					setAdminToolsVisible(true)
+					mainapi:CreateNotification('Admin unlocked', 'Admin tools enabled.', 5, 'info')
+					repaintEveryControl()
+					return
+				end
 			end
-		else
-			mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
+
+			if type(currentAccess) == 'table' and type(currentAccess.CheckKey) == 'function' then
+				local ok, result = pcall(function()
+					return currentAccess:CheckKey(entered)
+				end)
+				if ok then
+					mainapi.Access = currentAccess
+					setAdminToolsVisible(false)
+					updateAccessVisuals(currentAccess)
+					mainapi:CreateNotification('Access updated', 'Tier: '..getAccessDisplay(currentAccess), 5)
+					repaintEveryControl()
+				else
+					mainapi:CreateNotification('Access failed', tostring(result), 6, 'alert')
+				end
+			else
+				mainapi:CreateNotification('Access unavailable', 'The access library did not load.', 6, 'alert')
+			end
+		end)
+		if not safe then
+			mainapi:CreateNotification('Access failed', tostring(safeErr), 6, 'alert')
 		end
 	end,
 	Tooltip = 'Checks a whitelist key or unlocks admin tools when an admin key is entered.'
