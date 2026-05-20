@@ -25,6 +25,8 @@ local mainapi = {
 	Version = 'v1',
 	Access = shared.SilentwareAccess,
 	ThemePreset = 'Emerald Noir',
+	SettingsPanes = {},
+	ThemePreviewCards = {},
 	Windows = {}
 }
 mainapi.ThreadFix = false
@@ -101,7 +103,28 @@ local access = shared.SilentwareAccess or mainapi.Access or {
 }
 mainapi.Access = access
 
-local themePresets = {
+local themePresetFiles = {
+	['Emerald Noir'] = 'EmeraldNoir.lua',
+	['Cotton Candy'] = 'CottonCandy.lua',
+	['Sapphire Night'] = 'SapphireNight.lua',
+	['Royal Amethyst'] = 'RoyalAmethyst.lua',
+	['Rose Quartz'] = 'RoseQuartz.lua',
+	['Arctic Chrome'] = 'ArcticChrome.lua',
+	['Solar Flare'] = 'SolarFlare.lua',
+	['Crimson Velvet'] = 'CrimsonVelvet.lua',
+	['Cyberpunk Bloom'] = 'CyberpunkBloom.lua',
+	['Ocean Glass'] = 'OceanGlass.lua',
+	['Ghost Lavender'] = 'GhostLavender.lua',
+	['Golden Hour'] = 'GoldenHour.lua',
+	['Monochrome Ice'] = 'MonochromeIce.lua',
+	['Sakura Noir'] = 'SakuraNoir.lua',
+	['Void Blue'] = 'VoidBlue.lua',
+	['Peach Cream'] = 'PeachCream.lua',
+	['Grape Soda'] = 'GrapeSoda.lua',
+	['Cherry Cola'] = 'CherryCola.lua',
+	['Rainbow'] = 'Rainbow.lua',
+}
+local embeddedThemePresets = {
 	['Emerald Noir'] = {
 		Main = Color3.fromRGB(4, 7, 6),
 		Surface = Color3.fromRGB(9, 14, 12),
@@ -522,186 +545,66 @@ local themePresets = {
 		SurfaceAlt = Color3.fromRGB(18, 21, 31),
 		SurfaceHigh = Color3.fromRGB(28, 31, 47),
 		Border = Color3.fromRGB(80, 88, 119),
-		Accent = Color3.fromRGB(255, 92, 183),
-		AccentSoft = Color3.fromRGB(85, 188, 255),
-		AccentGlow = Color3.fromRGB(116, 255, 214),
-		SelectedTab = Color3.fromRGB(37, 29, 60),
-		ActiveToggle = Color3.fromRGB(255, 92, 183),
-		NotificationAccent = Color3.fromRGB(255, 92, 183),
+		Accent = Color3.fromRGB(255, 111, 189),
+		AccentSoft = Color3.fromRGB(111, 176, 255),
+		AccentGlow = Color3.fromRGB(156, 132, 255),
+		SelectedTab = Color3.fromRGB(55, 38, 82),
+		ActiveToggle = Color3.fromRGB(255, 111, 189),
+		NotificationAccent = Color3.fromRGB(111, 176, 255),
 		Text = Color3.fromRGB(248, 250, 255),
 		MutedText = Color3.fromRGB(177, 185, 210),
 		DimText = Color3.fromRGB(111, 119, 151),
 		GlassTransparency = 0.065,
 		PanelTransparency = 0.052,
 		ShadowTransparency = 0.15,
-		Hue = 0.92,
-		Sat = 0.74,
-		Value = 0.96,
-		IsRainbow = true,
-		Description = 'animated spectrum accents on a dark premium glass shell'
+		Hue = 0.91,
+		Sat = 0.56,
+		Value = 1,
+		Description = 'static rainbow glass with pink, blue, gold, and violet accents'
 	},
-	['Jade Glass'] = {
-		Main = Color3.fromRGB(3, 10, 10),
-		Surface = Color3.fromRGB(8, 19, 18),
-		SurfaceAlt = Color3.fromRGB(13, 29, 27),
-		SurfaceHigh = Color3.fromRGB(20, 42, 39),
-		Border = Color3.fromRGB(58, 100, 91),
-		Accent = Color3.fromRGB(70, 230, 182),
-		AccentSoft = Color3.fromRGB(35, 166, 128),
-		AccentGlow = Color3.fromRGB(94, 255, 211),
-		SelectedTab = Color3.fromRGB(18, 63, 56),
-		ActiveToggle = Color3.fromRGB(70, 230, 182),
-		NotificationAccent = Color3.fromRGB(92, 255, 211),
-		Text = Color3.fromRGB(238, 255, 250),
-		MutedText = Color3.fromRGB(142, 194, 180),
-		DimText = Color3.fromRGB(85, 133, 120),
-		GlassTransparency = 0.12,
-		PanelTransparency = 0.08,
-		ShadowTransparency = 0.18,
-		Hue = 0.455,
-		Sat = 0.70,
-		Value = 0.90,
-		Description = 'sleek glassy jade with softer blue-green shine'
-	},
-	['Obsidian Mint'] = {
-		Main = Color3.fromRGB(5, 6, 8),
-		Surface = Color3.fromRGB(10, 13, 16),
-		SurfaceAlt = Color3.fromRGB(18, 23, 27),
-		SurfaceHigh = Color3.fromRGB(27, 34, 39),
-		Border = Color3.fromRGB(56, 76, 79),
-		Accent = Color3.fromRGB(109, 244, 178),
-		AccentSoft = Color3.fromRGB(47, 171, 116),
-		AccentGlow = Color3.fromRGB(120, 255, 202),
-		SelectedTab = Color3.fromRGB(25, 55, 45),
-		ActiveToggle = Color3.fromRGB(109, 244, 178),
-		NotificationAccent = Color3.fromRGB(109, 244, 178),
-		Text = Color3.fromRGB(244, 249, 248),
-		MutedText = Color3.fromRGB(158, 178, 176),
-		DimText = Color3.fromRGB(104, 126, 125),
-		GlassTransparency = 0.06,
-		PanelTransparency = 0.04,
-		ShadowTransparency = 0.16,
-		Hue = 0.395,
-		Sat = 0.55,
-		Value = 0.96,
-		Description = 'clean obsidian panels with premium mint highlights'
-	},
-	['Viridian Luxe'] = {
-		Main = Color3.fromRGB(7, 8, 6),
-		Surface = Color3.fromRGB(14, 16, 12),
-		SurfaceAlt = Color3.fromRGB(22, 27, 19),
-		SurfaceHigh = Color3.fromRGB(31, 39, 27),
-		Border = Color3.fromRGB(75, 87, 56),
-		Accent = Color3.fromRGB(136, 219, 91),
-		AccentSoft = Color3.fromRGB(81, 150, 54),
-		AccentGlow = Color3.fromRGB(172, 255, 115),
-		SelectedTab = Color3.fromRGB(43, 56, 29),
-		ActiveToggle = Color3.fromRGB(136, 219, 91),
-		NotificationAccent = Color3.fromRGB(155, 239, 102),
-		Text = Color3.fromRGB(250, 252, 242),
-		MutedText = Color3.fromRGB(183, 190, 157),
-		DimText = Color3.fromRGB(125, 134, 99),
-		GlassTransparency = 0.045,
-		PanelTransparency = 0.035,
-		ShadowTransparency = 0.13,
-		Hue = 0.265,
-		Sat = 0.58,
-		Value = 0.86,
-		Description = 'expensive warm viridian, less neon and more luxury'
-	},
-	['Toxic Luxury'] = {
-		Main = Color3.fromRGB(5, 8, 5),
-		Surface = Color3.fromRGB(11, 15, 10),
-		SurfaceAlt = Color3.fromRGB(20, 27, 16),
-		SurfaceHigh = Color3.fromRGB(31, 42, 24),
-		Border = Color3.fromRGB(68, 94, 52),
-		Accent = Color3.fromRGB(170, 245, 93),
-		AccentSoft = Color3.fromRGB(94, 170, 56),
-		AccentGlow = Color3.fromRGB(193, 255, 113),
-		SelectedTab = Color3.fromRGB(44, 64, 31),
-		ActiveToggle = Color3.fromRGB(170, 245, 93),
-		NotificationAccent = Color3.fromRGB(170, 245, 93),
-		Text = Color3.fromRGB(250, 255, 240),
-		MutedText = Color3.fromRGB(182, 202, 156),
-		DimText = Color3.fromRGB(116, 140, 94),
-		GlassTransparency = 0.04,
-		PanelTransparency = 0.04,
-		ShadowTransparency = 0.13,
-		Hue = 0.245,
-		Sat = 0.62,
-		Value = 0.96,
-		Description = 'high-energy toxic green refined with dark luxury surfaces'
-	},
-	['Cyber Forest'] = {
-		Main = Color3.fromRGB(4, 10, 8),
-		Surface = Color3.fromRGB(8, 17, 14),
-		SurfaceAlt = Color3.fromRGB(13, 29, 23),
-		SurfaceHigh = Color3.fromRGB(21, 45, 36),
-		Border = Color3.fromRGB(45, 93, 75),
-		Accent = Color3.fromRGB(49, 226, 132),
-		AccentSoft = Color3.fromRGB(33, 145, 96),
-		AccentGlow = Color3.fromRGB(59, 255, 171),
-		SelectedTab = Color3.fromRGB(15, 60, 40),
-		ActiveToggle = Color3.fromRGB(49, 226, 132),
-		NotificationAccent = Color3.fromRGB(49, 226, 132),
-		Text = Color3.fromRGB(237, 255, 247),
-		MutedText = Color3.fromRGB(136, 188, 159),
-		DimText = Color3.fromRGB(83, 127, 101),
-		GlassTransparency = 0.08,
-		PanelTransparency = 0.06,
-		ShadowTransparency = 0.16,
-		Hue = 0.378,
-		Sat = 0.78,
-		Value = 0.88,
-		Description = 'forest-dark shell with sharper cyber highlights'
-	},
-	['Beta Aurora'] = {
-		Main = Color3.fromRGB(5, 6, 12),
-		Surface = Color3.fromRGB(10, 13, 24),
-		SurfaceAlt = Color3.fromRGB(18, 23, 38),
-		SurfaceHigh = Color3.fromRGB(28, 35, 55),
-		Border = Color3.fromRGB(70, 87, 117),
-		Accent = Color3.fromRGB(71, 232, 164),
-		AccentSoft = Color3.fromRGB(56, 134, 213),
-		AccentGlow = Color3.fromRGB(86, 255, 201),
-		SelectedTab = Color3.fromRGB(28, 48, 68),
-		ActiveToggle = Color3.fromRGB(71, 232, 164),
-		NotificationAccent = Color3.fromRGB(93, 184, 255),
-		Text = Color3.fromRGB(242, 248, 255),
-		MutedText = Color3.fromRGB(157, 180, 207),
-		DimText = Color3.fromRGB(94, 114, 145),
-		GlassTransparency = 0.08,
-		PanelTransparency = 0.055,
-		ShadowTransparency = 0.17,
-		Hue = 0.43,
-		Sat = 0.69,
-		Value = 0.91,
-		Description = 'dark aurora glow for beta/nightly builds'
-	},
-	['Midnight Terminal'] = {
-		Main = Color3.fromRGB(3, 5, 6),
-		Surface = Color3.fromRGB(7, 10, 12),
-		SurfaceAlt = Color3.fromRGB(12, 17, 19),
-		SurfaceHigh = Color3.fromRGB(18, 25, 27),
-		Border = Color3.fromRGB(42, 65, 61),
-		Accent = Color3.fromRGB(82, 213, 151),
-		AccentSoft = Color3.fromRGB(45, 138, 100),
-		AccentGlow = Color3.fromRGB(94, 244, 186),
-		SelectedTab = Color3.fromRGB(17, 41, 35),
-		ActiveToggle = Color3.fromRGB(82, 213, 151),
-		NotificationAccent = Color3.fromRGB(82, 213, 151),
-		Text = Color3.fromRGB(238, 247, 244),
-		MutedText = Color3.fromRGB(141, 165, 159),
-		DimText = Color3.fromRGB(82, 106, 99),
-		GlassTransparency = 0.02,
-		PanelTransparency = 0.02,
-		ShadowTransparency = 0.10,
-		Hue = 0.405,
-		Sat = 0.58,
-		Value = 0.84,
-		Description = 'minimal midnight command-center look with tight contrast'
-	}
 }
+
+local themePresets = {}
+local function loadThemePresetFromSource(presetName, allowRemote)
+	local fileName = themePresetFiles[presetName]
+	if not fileName then return nil end
+	local function trySource(source)
+		if type(source) ~= 'string' or source == '' then return nil end
+		local loader = loadstring or load
+		if not loader then return nil end
+		local ok, result = pcall(function()
+			local chunk = loader(source)
+			return type(chunk) == 'function' and chunk() or nil
+		end)
+		return ok and type(result) == 'table' and result or nil
+	end
+	if isfile and readfile then
+		for _, localPath in {'vape/themes/'..fileName, 'themes/'..fileName} do
+			local ok, source = pcall(function()
+				return isfile(localPath) and readfile(localPath) or nil
+			end)
+			local loaded = ok and trySource(source)
+			if loaded then return loaded end
+		end
+	end
+	if allowRemote ~= false and game and game.HttpGet then
+		local ok, source = pcall(function()
+			return game:HttpGet('https://raw.githubusercontent.com/VapeSilentware/vapesilentware/main/themes/'..fileName, true)
+		end)
+		local loaded = ok and trySource(source)
+		if loaded then return loaded end
+	end
+	return nil
+end
+
+local function getThemePreset(presetName, allowRemote)
+	if themePresets[presetName] then return themePresets[presetName] end
+	local loaded = loadThemePresetFromSource(presetName, allowRemote)
+	local fallback = embeddedThemePresets[presetName] or embeddedThemePresets['Emerald Noir']
+	themePresets[presetName] = loaded or fallback
+	return themePresets[presetName]
+end
+
 
 local themePresetNames = {'Emerald Noir', 'Cotton Candy', 'Sapphire Night', 'Royal Amethyst', 'Rose Quartz', 'Arctic Chrome', 'Solar Flare', 'Crimson Velvet', 'Cyberpunk Bloom', 'Ocean Glass', 'Ghost Lavender', 'Golden Hour', 'Monochrome Ice', 'Sakura Noir', 'Void Blue', 'Peach Cream', 'Grape Soda', 'Cherry Cola', 'Rainbow'}
 local allowedThemePresets = {}
@@ -709,7 +612,7 @@ for _, themeName in themePresetNames do allowedThemePresets[themeName] = true en
 
 local function applyThemeToPalette(presetName)
 	if not allowedThemePresets[presetName] then presetName = 'Emerald Noir' end
-	local preset = themePresets[presetName] or themePresets['Emerald Noir']
+	local preset = getThemePreset(presetName, true) or getThemePreset('Emerald Noir', false)
 	for key, value in pairs(preset) do
 		if uipallet[key] ~= nil and (typeof(value) == 'Color3' or type(value) == 'number') then
 			uipallet[key] = value
@@ -732,7 +635,7 @@ end
 pcall(function()
 	if isfile and isfile('vape/SilentwareTheme.txt') then
 		local savedTheme = tostring(readfile('vape/SilentwareTheme.txt') or ''):gsub('^%s+', ''):gsub('%s+$', '')
-		if themePresets[savedTheme] and allowedThemePresets[savedTheme] then mainapi.ThemePreset = savedTheme end
+		if allowedThemePresets[savedTheme] and getThemePreset(savedTheme, false) then mainapi.ThemePreset = savedTheme end
 	end
 end)
 applyThemeToPalette(mainapi.ThemePreset)
@@ -747,11 +650,20 @@ local function isThemePreviewObject(obj)
 end
 
 
+
+local function safeZIndex(obj)
+	local ok, z = pcall(function()
+		if obj and obj:IsA('GuiObject') then return obj.ZIndex end
+		return nil
+	end)
+	return ok and z or nil
+end
+
 local function isSettingsPaneObject(obj)
 	local parent = obj
 	while parent do
-		if parent.Name == 'Children' and parent.Parent and parent.Parent.ZIndex and parent.Parent.ZIndex >= 32 then return true end
-		if parent.ZIndex and parent.ZIndex >= 32 and parent.Name ~= 'SettingsFocusScrim' then return true end
+		if parent.Name == 'Children' and parent.Parent and (safeZIndex(parent.Parent) or 0) >= 32 then return true end
+		if (safeZIndex(parent) or 0) >= 32 and parent.Name ~= 'SettingsFocusScrim' then return true end
 		parent = parent.Parent
 	end
 	return false
@@ -778,7 +690,7 @@ local function restyleControlObject(obj)
 	local role = getSilentwareRole(obj)
 	if obj:IsA('ScrollingFrame') then
 		obj.ScrollBarImageColor3 = uipallet.Accent
-		if obj.Name == 'Children' and obj.Parent and obj.Parent.ZIndex and obj.Parent.ZIndex >= 32 then
+		if obj.Name == 'Children' and obj.Parent and (safeZIndex(obj.Parent) or 0) >= 32 then
 			obj.BackgroundColor3 = uipallet.Surface
 		end
 	elseif obj:IsA('TextLabel') then
@@ -817,7 +729,7 @@ local function restyleControlObject(obj)
 			obj.BackgroundColor3 = uipallet.Surface
 		elseif obj.Name:find('Button') or obj.Name:find('Dropdown') or obj.Name:find('TextBox') or obj.Name:find('Toggle') or obj.Name:find('Slider') or obj.Name:find('TextList') then
 			obj.BackgroundColor3 = color.Dark(uipallet.Surface, 0.01)
-		elseif obj.ZIndex and obj.ZIndex >= 32 then
+		elseif (safeZIndex(obj) or 0) >= 32 then
 			obj.BackgroundColor3 = uipallet.Surface
 		end
 		if obj.Text ~= '' and obj.TextTransparency < 1 then
@@ -931,6 +843,25 @@ local function clearRainbowDecor()
 		end
 	end
 	mainapi.RainbowDecor = {}
+end
+
+
+local function repaintThemePreviewCards()
+	if not mainapi.ThemePreviewCards then return end
+	for _, cardInfo in mainapi.ThemePreviewCards do
+		local preset = getThemePreset(cardInfo.PresetName, false)
+		if preset then
+			if cardInfo.Surface then cardInfo.Surface.BackgroundColor3 = preset.SurfaceAlt or uipallet.SurfaceAlt end
+			if cardInfo.Swatch then cardInfo.Swatch.BackgroundColor3 = preset.Accent or uipallet.Accent end
+			if cardInfo.Glow then
+				cardInfo.Glow.ImageColor3 = preset.AccentGlow or preset.Accent or uipallet.Accent
+			end
+			if cardInfo.Title then cardInfo.Title.TextColor3 = preset.Text or uipallet.Text end
+			if cardInfo.Description then cardInfo.Description.TextColor3 = preset.MutedText or uipallet.MutedText end
+			if cardInfo.MiniA then cardInfo.MiniA.BackgroundColor3 = preset.SurfaceHigh or uipallet.SurfaceHigh end
+			if cardInfo.MiniB then cardInfo.MiniB.BackgroundColor3 = preset.Accent or uipallet.Accent end
+		end
+	end
 end
 
 local function refreshPremiumTheme()
@@ -1047,21 +978,16 @@ local function refreshPremiumTheme()
 			end
 		end
 	end
+	for _, pane in pairs(mainapi.SettingsPanes or {}) do
+		if type(pane.ApplyTheme) == 'function' then pcall(function() pane:ApplyTheme() end) end
+	end
+	repaintThemePreviewCards()
 	repaintEveryControl()
 	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
 end
 
 local function refreshRainbowThemeFast()
-	if not mainapi.RainbowTheme then return end
-	if not mainapi.RainbowDecor or #mainapi.RainbowDecor == 0 then
-		setupRainbowDecor()
-	end
-	local rotation = (tick() * 7) % 360
-	for _, gradient in mainapi.RainbowDecor do
-		if gradient and gradient.Parent then
-			gradient.Rotation = rotation
-		end
-	end
+	return
 end
 
 function mainapi:ApplyThemePreset(presetName)
@@ -1072,10 +998,20 @@ function mainapi:ApplyThemePreset(presetName)
 		clearRainbowDecor()
 	end
 	refreshPremiumTheme()
+	pcall(function() mainapi:UpdateGUI(mainapi.GUIColor.Hue, mainapi.GUIColor.Sat, mainapi.GUIColor.Value, true) end)
+	for _, pane in pairs(mainapi.SettingsPanes or {}) do
+		if type(pane.ApplyTheme) == 'function' then pcall(function() pane:ApplyTheme() end) end
+	end
+	pcall(function() mainapi:RefreshAccessLocks() end)
 	repaintEveryControl()
+	repaintThemePreviewCards()
 	task.defer(function()
-		repaintEveryControl()
+		for _, pane in pairs(mainapi.SettingsPanes or {}) do
+			if type(pane.ApplyTheme) == 'function' then pcall(function() pane:ApplyTheme() end) end
+		end
 		pcall(function() mainapi:RefreshAccessLocks() end)
+		repaintEveryControl()
+		repaintThemePreviewCards()
 	end)
 	pcall(function()
 		if writefile then writefile('vape/SilentwareTheme.txt', tostring(presetName)) end
@@ -1240,7 +1176,7 @@ local function addGlow(parent, name, transparency, sizePad)
 	glow.Image = ''
 	glow.ImageColor3 = uipallet.AccentGlow or uipallet.Accent
 	glow.ImageTransparency = 1
-	glow.ZIndex = math.max((parent.ZIndex or 1) - 1, 0)
+	glow.ZIndex = math.max((safeZIndex(parent) or 1) - 1, 0)
 	glow.Parent = parent
 	addCorner(glow, UDim.new(0, 16))
 	local glowStroke = Instance.new('UIStroke')
@@ -1265,7 +1201,7 @@ local function addShadow(parent, name, transparency, sizePad, offsetY)
 	shadow.Image = ''
 	shadow.ImageColor3 = Color3.new(0, 0, 0)
 	shadow.ImageTransparency = 1
-	shadow.ZIndex = math.max((parent.ZIndex or 1) - 2, 0)
+	shadow.ZIndex = math.max((safeZIndex(parent) or 1) - 2, 0)
 	shadow.Parent = parent
 	local shadowCore = Instance.new('Frame')
 	shadowCore.Name = 'ShadowCore'
@@ -3991,21 +3927,9 @@ mainapi.Components = setmetatable(components, {
 
 task.spawn(function()
 	repeat
-		-- Legacy manual rainbow color sliders are disabled in the premium theme system.
-		-- Do not run the old 60hz full-table recolor loop unless an older config explicitly enables it.
-		if mainapi.GUIColor and mainapi.GUIColor.Rainbow == true and #mainapi.RainbowTable > 0 then
-			local hue = tick() * (0.2 * (mainapi.RainbowSpeed.Value or 1)) % 1
-			for _, v in mainapi.RainbowTable do
-				if v.Type == 'GUISlider' then
-					v:SetValue(mainapi:Color(hue))
-				else
-					v:SetValue(hue)
-				end
-			end
-			task.wait(math.max(0.35, 1 / math.max(mainapi.RainbowUpdateSpeed.Value or 2, 1)))
-		else
-			task.wait(1.25)
-		end
+		-- Premium themes are preset-only now. Keep the legacy rainbow table dormant so old configs cannot lag the game.
+		if mainapi.GUIColor then mainapi.GUIColor.Rainbow = false end
+		task.wait(2)
 	until mainapi.Loaded == nil
 end)
 
@@ -4132,7 +4056,7 @@ function mainapi:CreateGUI()
 	logoGlowText.TextColor3 = uipallet.AccentGlow or uipallet.Accent
 	logoGlowText.TextTransparency = 0.78
 	logoGlowText.Position = logo.Position + UDim2.fromOffset(1, 0)
-	logoGlowText.ZIndex = math.max((logo.ZIndex or 1) - 1, 1)
+	logoGlowText.ZIndex = math.max((safeZIndex(logo) or 1) - 1, 1)
 	logoGlowText.Parent = topbar
 	mainapi.PremiumTitleGlow = logoGlowText
 
@@ -4974,6 +4898,25 @@ function mainapi:CreateGUI()
 		close.MouseButton1Click:Connect(function()
 			hideSettingsPane()
 		end)
+		function optionapi:ApplyTheme()
+			button.BackgroundColor3 = uipallet.SurfaceAlt
+			button.TextColor3 = color.Dark(uipallet.Text, 0.12)
+			arrow.ImageColor3 = uipallet.Accent
+			settingspane.BackgroundColor3 = uipallet.Surface
+			settingspane.BackgroundTransparency = math.clamp((uipallet.PanelTransparency or 0.02) + 0.015, 0.025, 0.10)
+			settingschildren.BackgroundColor3 = uipallet.Surface
+			settingschildren.ScrollBarImageColor3 = uipallet.Accent
+			divider.BackgroundColor3 = uipallet.Border
+			local buttonStroke = button:FindFirstChildOfClass('UIStroke')
+			if buttonStroke then buttonStroke.Color = uipallet.Border; buttonStroke.Transparency = 0.66 end
+			local paneStroke = settingspane:FindFirstChildOfClass('UIStroke')
+			if paneStroke then paneStroke.Color = uipallet.Border; paneStroke.Transparency = 0.26 end
+			for _, obj in settingspane:GetDescendants() do
+				restyleControlObject(obj)
+			end
+		end
+		mainapi.SettingsPanes[categorysettings.Name] = optionapi
+
 		windowlist:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 			if mainapi.ThreadFix then
 				setthreadidentity(8)
@@ -8208,6 +8151,7 @@ local function createThemePreviewCard(parent, themeName, preset, layoutOrder)
 	miniB.BorderSizePixel = 0
 	miniB.Parent = shell
 	addCorner(miniB, UDim.new(1, 0))
+	table.insert(mainapi.ThemePreviewCards, {Card = card, Surface = shell, Swatch = swatch, Glow = swatchGlow, Title = title, Description = desc, MiniA = miniA, MiniB = miniB, PresetName = themeName})
 	card.MouseEnter:Connect(function()
 		tween:Tween(shell, uipallet.Tween, {BackgroundTransparency = 0})
 		tween:Tween(swatchGlow, uipallet.Tween, {ImageTransparency = 0.2})
@@ -8231,7 +8175,7 @@ themepane:CreateDropdown({
 	Tooltip = 'Choose a premade premium Silentware theme.'
 })
 for index, themeName in themePresetNames do
-	createThemePreviewCard(themepane, themeName, themePresets[themeName], 20 + index)
+	createThemePreviewCard(themepane, themeName, getThemePreset(themeName, false), 20 + index)
 end
 
 --[[
